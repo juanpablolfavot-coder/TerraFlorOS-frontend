@@ -37,7 +37,14 @@ export function Field({
     <div className={cn("space-y-2", className)}>
       <label htmlFor={htmlFor} className="block text-sm font-medium text-stone-700">
         {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {/* aria-hidden: el asterisco es señal visual. Si entrara al nombre
+            accesible, el lector diría "Nombre asterisco"; lo obligatorio ya
+            lo comunica el atributo `required` del control. */}
+        {required && (
+          <span aria-hidden="true" className="ml-0.5 text-red-500">
+            *
+          </span>
+        )}
       </label>
       {children}
       {error !== undefined ? (

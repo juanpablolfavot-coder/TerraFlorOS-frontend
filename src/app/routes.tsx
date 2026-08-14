@@ -1,7 +1,9 @@
 import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CashPage } from "@/features/cash/CashPage";
+import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { ProductDetailPage } from "@/features/products/ProductDetailPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
 import { PosPage } from "@/features/sales/PosPage";
 import { PERMISSIONS, RequireAuth, RequirePermission } from "@/features/auth";
@@ -52,6 +54,9 @@ export function AppRoutes() {
 
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>
             <Route path="productos" element={<ProductsPage />} />
+            {/* "nuevo" y :id comparten pantalla: el alta es el detalle vacío */}
+            <Route path="productos/:id" element={<ProductDetailPage />} />
+            <Route path="categorias" element={<CategoriesPage />} />
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.STOCK_VIEW} />}>

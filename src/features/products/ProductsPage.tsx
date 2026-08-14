@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Alert,
   Badge,
@@ -27,6 +28,7 @@ import type { ProductKind, ProductsQuery } from "./types";
 const PAGE_SIZE = 20;
 
 type ActiveFilter = "all" | "active" | "inactive";
+type FavoriteFilter = "all" | "favorites";
 
 export function ProductsPage() {
   useDocumentTitle("Productos");
@@ -38,7 +40,9 @@ export function ProductsPage() {
   const [kind, setKind] = useState<ProductKind | "">("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("active");
+  const [favoriteFilter, setFavoriteFilter] = useState<FavoriteFilter>("all");
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
 
   const debouncedSearch = useDebouncedValue(search);
 
@@ -46,7 +50,7 @@ export function ProductsPage() {
   // la 7 de un listado que ahora tiene 2 mostraría una tabla vacía.
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, kind, categoryId, activeFilter]);
+  }, [debouncedSearch, kind, categoryId, activeFilter, favoriteFilter]);
 
   const query = useMemo<ProductsQuery>(
     () => ({
@@ -58,8 +62,9 @@ export function ProductsPage() {
       ...(kind !== "" ? { kind } : {}),
       ...(categoryId !== "" ? { categoryId } : {}),
       ...(activeFilter !== "all" ? { isActive: activeFilter === "active" } : {}),
+      ...(favoriteFilter === "favorites" ? { isFavorite: true } : {}),
     }),
-    [page, debouncedSearch, kind, categoryId, activeFilter]
+    [page, debouncedSearch, kind, categoryId, activeFilter, favoriteFilter]
   );
 
   const { data, isPending, isFetching, error } = useProducts(query);
@@ -75,18 +80,22 @@ export function ProductsPage() {
         description="Catálogo del vivero: plantas y productos convencionales."
         actions={
           <Can permission={PERMISSIONS.PRODUCTS_MANAGE}>
-            <Button disabled title="Próximamente">
-              Nuevo producto
-            </Button>
+            <Link
+              to="/categorias"
+              className="text-sm font-medium text-stone-500 hover:text-stone-800"
+            >
+              Categorías
+            </Link>
+            <Button onClick={() => navigate("/productos/nuevo")}>Nuevo producto</Button>
           </Can>
         }
       />
 
       {/* Filtros */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <SearchInput
           className="sm:col-span-2 xl:col-span-1"
-          placeholder="Buscar por nombre, SKU o código…"
+          placeholder="Nombre, SKU, código o nombre científico…"
           aria-label="Buscar productos"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -127,6 +136,15 @@ export function ProductsPage() {
           <option value="inactive">Solo inactivos</option>
           <option value="all">Todos</option>
         </Select>
+
+        <Select
+          aria-label="Filtrar por favoritos"
+          value={favoriteFilter}
+          onChange={(event) => setFavoriteFilter(event.target.value as FavoriteFilter)}
+        >
+          <option value="all">Todos los productos</option>
+          <option value="favorites">Solo favoritos</option>
+        </Select>
       </div>
 
       {error !== null && (
@@ -160,11 +178,18 @@ export function ProductsPage() {
               </TableMessage>
             ) : (
               data.items.map((product) => (
-                <TR key={product.id}>
+                <TR
+                  key={product.id}
+                  interactive
+                  onClick={() => navigate(`/productos/${product.id}`)}
+                >
                   <TD className="font-mono text-xs text-stone-500">{product.sku}</TD>
 
                   <TD>
-                    <span className="font-medium text-stone-900">{product.name}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium text-stone-900">{product.name}</span>
+                      {product.isFavorite && <Badge tone="warning">Favorito</Badge>}
+                    </span>
                     {product.plantDetail?.scientificName != null && (
                       <span className="block text-xs text-stone-500 italic">
                         {product.plantDetail.scientificName}

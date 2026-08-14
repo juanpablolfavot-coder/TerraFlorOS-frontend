@@ -1,5 +1,36 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.5.0] — Módulo de catálogo: productos, plantas, categorías y precios
+
+- **Lista de productos** con búsqueda por nombre, SKU, código interno,
+  código de barras y nombre científico, más filtros por tipo, categoría,
+  estado y favoritos. Las filas abren la ficha. La columna de costo aparece
+  solo con `products.view_cost`
+- **Alta y edición de productos**: datos base, categoría del árbol, unidad,
+  proveedor, parámetros de reposición y estado. El tipo se elige en el alta
+  y después queda bloqueado, porque el PATCH del backend no lo acepta
+- **Ficha botánica** para las plantas: más de treinta campos agrupados en
+  secciones plegables (Identificación, Presentación, Cultivo y Notas), con
+  Identificación abierta y el resto cerrado para no abrumar en el alta
+- **Precios por lista** con guardado en lote (`PUT .../prices`) e historial
+  de cambios. El margen sobre el costo promedio se muestra solo con
+  `products.view_cost`, y editar precios requiere `prices.edit`
+- **Códigos de barras**: alta y baja, con el 409 explicando a qué producto
+  pertenece un código repetido
+- **Categorías** en `/categorias`: árbol de dos niveles, alta, renombre y
+  baja. El 409 al borrar dice cuántos productos y subcategorías lo impiden
+- Validación con Zod en el formulario, espejo de la del backend, con errores
+  por campo; los errores de validación que devuelve el servidor se muestran
+  en el mismo lugar
+- Componentes nuevos en `ui/`: `Collapsible`, `Textarea`, `Checkbox` y
+  `TriStateSelect` (sí / no / sin dato, para no convertir «no sabemos» en «no»)
+
+### Corregido
+
+- El asterisco de campo obligatorio entraba en el nombre accesible del
+  control («Nombre*»). Ahora va con `aria-hidden`: lo obligatorio ya lo
+  comunica el atributo `required`
+
 ## [0.4.1] — El input de monto ya no pierde el foco
 
 ### Corregido

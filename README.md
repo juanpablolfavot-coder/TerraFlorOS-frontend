@@ -67,9 +67,10 @@ src/
     ui/                  Button, Input, Card, Table, Spinner, …
   features/
     auth/                Contexto de sesión, permisos y guards
-    cash/                Caja: apertura y estado del turno
+    cash/                Caja: apertura, movimientos y cierre
+    categories/          Árbol de categorías
     dashboard/           Panel del día
-    products/            Listado de productos
+    products/            Catálogo: lista, ficha, precios y códigos
     sales/               POS: buscador, carrito y cobro
   lib/
     api.ts               Instancia de Axios + refresh de sesión
@@ -168,6 +169,9 @@ Implementado:
 - **Ventas (POS)**: buscador que escanea y busca, carrito, pago mixto y cobro
 - **Caja**: apertura, resumen del turno en vivo, movimientos manuales
   (gasto, retiro, depósito) y cierre con arqueo
+- **Catálogo**: lista con filtros, alta y edición de productos con ficha
+  botánica, precios por lista con historial, códigos de barras y árbol de
+  categorías
 
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
 Inventario, Compras, Proveedores y Usuarios.
@@ -200,3 +204,14 @@ Detalles del contrato que conviene tener presentes:
 - El POS manda siempre el `unitPrice` de cada línea para que su total sea
   idéntico al que calcula el backend: la validación «pagos == total» es
   exacta y un centavo de diferencia rechaza la venta
+- **El listado de productos no trae precios ni stock** (`productListInclude`
+  del backend es solo categoría y ficha resumida), así que la tabla no tiene
+  esas columnas: sacarlas exigiría una consulta por fila
+- **Los costos son de solo lectura en el catálogo.** `lastCost` y
+  `averageCost` se actualizan desde las recepciones de compra; el formulario
+  los muestra sin editarlos y solo con `products.view_cost`
+- **`plantDetail` solo se manda si el producto es de tipo `PLANT`**: el
+  backend devuelve 400 si llega en un producto convencional. Y el `kind` no
+  viaja en el PATCH, porque su schema no lo acepta
+- Los booleanos de la ficha son de **tres estados**: `true`, `false` y `null`
+  («sin dato»). El formulario los distingue en vez de colapsarlos a un check
