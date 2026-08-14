@@ -1,5 +1,38 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.6.0] — Compras, recepción con generación de lotes y productos a reponer
+
+- **Lista de compras** con filtros por estado, proveedor y rango de fechas.
+  Cada estado tiene su color para reconocer la etapa de un vistazo
+- **Alta y edición de órdenes**: proveedor, productos con cantidad y costo,
+  descuento, impuestos, flete, otros costos, fecha esperada, condiciones de
+  pago y notas. Al cargar un costo se compara con el último conocido y se
+  resalta si supera el umbral configurado (`costIncreaseAlert`)
+- **Detalle** con los ítems, lo recibido de cada uno y las recepciones
+  hechas. Solo aparecen los botones de las transiciones que el backend
+  acepta; si igual rechaza una, el 409 se traduce a «desde X solo se puede
+  pasar a Y»
+- **Recepción de mercadería**: lista los ítems pendientes con lo que falta y
+  el costo de la orden por defecto, permite recibir parcialmente y bloquea
+  las cantidades por encima de lo pendiente antes de mandar nada. Pide
+  confirmación, porque genera stock real
+- Al terminar, la recepción muestra **qué generó**: el código de cada lote,
+  las cantidades y que los costos del producto quedaron actualizados
+- **Productos a reponer** (`/reposicion`): los que están en o por debajo de
+  su mínimo. Es deliberadamente simple — muestra disponible, mínimo y la
+  resta entre ambos, y aclara que no es una cantidad sugerida de compra
+
+### Sobre el contrato del backend
+
+- Las compras exigen `branchId`, que sale de la sucursal del usuario; sin
+  sucursal asignada no se pueden crear órdenes
+- Los estados de recepción (`PARTIALLY_RECEIVED`, `RECEIVED`) no se ponen a
+  mano: los pone el backend al registrar una recepción
+- La orden solo se edita en DRAFT o REQUESTED, y mandar `items` en el PATCH
+  reemplaza todos los de la orden
+- `/api/dashboard/purchases` no calcula cantidades a pedir ni estacionalidad,
+  así que la vista no lo promete
+
 ## [0.5.0] — Módulo de catálogo: productos, plantas, categorías y precios
 
 - **Lista de productos** con búsqueda por nombre, SKU, código interno,

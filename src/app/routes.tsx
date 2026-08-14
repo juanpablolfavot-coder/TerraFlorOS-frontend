@@ -5,6 +5,9 @@ import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { ProductDetailPage } from "@/features/products/ProductDetailPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
+import { PurchaseDetailPage } from "@/features/purchases/PurchaseDetailPage";
+import { PurchasesPage } from "@/features/purchases/PurchasesPage";
+import { RestockPage } from "@/features/purchases/RestockPage";
 import { PosPage } from "@/features/sales/PosPage";
 import { PERMISSIONS, RequireAuth, RequirePermission } from "@/features/auth";
 import { ForbiddenPage, NotFoundPage } from "@/pages/ErrorPages";
@@ -84,21 +87,10 @@ export function AppRoutes() {
               />
             }
           >
-            <Route
-              path="compras"
-              element={
-                <PlaceholderPage
-                  title="Compras"
-                  description="Órdenes de compra y recepción de mercadería."
-                  next={[
-                    "Listado y alta de órdenes (GET/POST /api/purchases)",
-                    "Cambios de estado del circuito (POST /api/purchases/:id/status)",
-                    "Recepción total o parcial, que actualiza costos (POST /api/purchases/:id/receipts)",
-                    "Aviso de aumento de costo según purchases.cost_increase_alert_pct",
-                  ]}
-                />
-              }
-            />
+            <Route path="compras" element={<PurchasesPage />} />
+            {/* "nueva" y :id comparten pantalla, igual que en productos */}
+            <Route path="compras/:id" element={<PurchaseDetailPage />} />
+            <Route path="reposicion" element={<RestockPage />} />
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>

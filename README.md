@@ -71,6 +71,7 @@ src/
     categories/          Árbol de categorías
     dashboard/           Panel del día
     products/            Catálogo: lista, ficha, precios y códigos
+    purchases/           Compras, recepción y productos a reponer
     sales/               POS: buscador, carrito y cobro
   lib/
     api.ts               Instancia de Axios + refresh de sesión
@@ -172,9 +173,11 @@ Implementado:
 - **Catálogo**: lista con filtros, alta y edición de productos con ficha
   botánica, precios por lista con historial, códigos de barras y árbol de
   categorías
+- **Compras**: órdenes con sus estados, recepción de mercadería que genera
+  lotes, y la lista de productos bajo stock mínimo
 
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
-Inventario, Compras, Proveedores y Usuarios.
+Inventario, Proveedores y Usuarios.
 
 ---
 
@@ -215,3 +218,13 @@ Detalles del contrato que conviene tener presentes:
   viaja en el PATCH, porque su schema no lo acepta
 - Los booleanos de la ficha son de **tres estados**: `true`, `false` y `null`
   («sin dato»). El formulario los distingue en vez de colapsarlos a un check
+- **Las compras exigen `branchId`** en el alta y sale de la sucursal del
+  usuario: quien no tenga una asignada no puede crear órdenes
+- **Los estados de recepción no se ponen a mano.** Las transiciones manuales
+  son DRAFT→REQUESTED→APPROVED→SENT (más cancelar); `PARTIALLY_RECEIVED` y
+  `RECEIVED` los pone el backend al registrar una recepción
+- **La orden solo se edita en DRAFT o REQUESTED**, y mandar `items` en el
+  PATCH reemplaza todos los de la orden
+- **`/api/dashboard/purchases` solo devuelve lo que está bajo mínimo.** No
+  calcula cantidades a pedir, estacionalidad ni proveedores sugeridos, así
+  que la pantalla se llama «Productos a reponer» y no promete otra cosa
