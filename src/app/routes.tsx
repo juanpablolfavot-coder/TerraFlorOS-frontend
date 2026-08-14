@@ -1,7 +1,9 @@
 import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CashPage } from "@/features/cash/CashPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
+import { PosPage } from "@/features/sales/PosPage";
 import { PERMISSIONS, RequireAuth, RequirePermission } from "@/features/auth";
 import { ForbiddenPage, NotFoundPage } from "@/pages/ErrorPages";
 import { HomeRedirect } from "@/pages/HomeRedirect";
@@ -28,21 +30,7 @@ export function AppRoutes() {
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.SALES_CREATE} />}>
-            <Route
-              path="ventas"
-              element={
-                <PlaceholderPage
-                  title="Ventas"
-                  description="Punto de venta: carga de productos, cobro y ticket."
-                  next={[
-                    "Búsqueda por código de barras (GET /api/products/by-barcode/:code)",
-                    "Carrito con lista de precios y descuentos (sales.discount)",
-                    "Cobro con varios medios de pago y cierre de venta (POST /api/sales)",
-                    "Anulación de ventas para quien tenga sales.void",
-                  ]}
-                />
-              }
-            />
+            <Route path="ventas" element={<PosPage />} />
           </Route>
 
           <Route
@@ -52,21 +40,7 @@ export function AppRoutes() {
               />
             }
           >
-            <Route
-              path="caja"
-              element={
-                <PlaceholderPage
-                  title="Caja"
-                  description="Apertura, movimientos y cierre del turno."
-                  next={[
-                    "Estado del turno actual (GET /api/cash/sessions/current)",
-                    "Apertura con saldo inicial (POST /api/cash/sessions)",
-                    "Ingresos y egresos de efectivo (POST /api/cash/sessions/:id/movements)",
-                    "Cierre con arqueo y diferencia (POST /api/cash/sessions/:id/close)",
-                  ]}
-                />
-              }
-            />
+            <Route path="caja" element={<CashPage />} />
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>

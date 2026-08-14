@@ -67,8 +67,10 @@ src/
     ui/                  Button, Input, Card, Table, Spinner, …
   features/
     auth/                Contexto de sesión, permisos y guards
-    dashboard/           Panel del día (implementado)
-    products/            Listado de productos (implementado)
+    cash/                Caja: apertura y estado del turno
+    dashboard/           Panel del día
+    products/            Listado de productos
+    sales/               POS: buscador, carrito y cobro
   lib/
     api.ts               Instancia de Axios + refresh de sesión
     session.ts           Access token en memoria
@@ -163,7 +165,31 @@ Implementado:
 - **Panel**: ventas del día, medios de pago, plantas e inventario
 - **Productos**: listado con búsqueda, filtros por tipo/categoría/estado y
   paginación
+- **Ventas (POS)**: buscador que escanea y busca, carrito, pago mixto y cobro
+- **Caja**: apertura con saldo inicial y estado del turno en vivo
 
-Pendiente (las rutas y los permisos ya existen, falta la interfaz): Ventas
-(POS), Caja, Inventario, Compras, Proveedores y Usuarios. Cada pantalla
-provisoria lista los endpoints que le tocan.
+Pendiente (las rutas y los permisos ya existen, falta la interfaz):
+Inventario, Compras, Proveedores y Usuarios. También los movimientos
+manuales de caja y el cierre con arqueo.
+
+---
+
+## Endpoints que le faltan al backend
+
+El POS está completo del lado del frontend, pero **no puede cobrar** hasta
+que existan estos endpoints:
+
+| Endpoint | Para qué | Qué hace el frontend mientras tanto |
+| --- | --- | --- |
+| `GET /api/payment-methods` | Catálogo de medios de pago | Explica que falta y deja el cobro deshabilitado. No se cablean ids fijos: cobrar con el método equivocado sería un error silencioso en los datos |
+| `GET /api/price-lists` | Saber cuál es la lista por defecto (`isDefault`) | Deduce las listas de los precios de los productos y, si hay más de una, deja elegir |
+| `GET /api/customers` | Cliente opcional de la venta | Vende sin cliente; `customerId` ya está contemplado |
+
+Dos detalles del contrato actual que conviene tener presentes:
+
+- `POST /api/cash/sessions` espera **`cashRegisterId`**, mientras que
+  `/api/cash/sessions/current` y `POST /api/sales` usan `registerId`. El
+  schema es `.strict()`, así que el nombre equivocado devuelve 400
+- `GET /api/cash/registers` y `/sessions/current` exigen `cash.open`, de modo
+  que un vendedor con solo `sales.create` no puede ni consultar si hay una
+  caja abierta

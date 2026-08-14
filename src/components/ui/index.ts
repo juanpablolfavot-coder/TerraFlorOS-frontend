@@ -4,6 +4,7 @@ export { Button, type ButtonProps } from "./Button";
 export { Card, CardHeader, StatCard } from "./Card";
 export { EmptyState } from "./EmptyState";
 export { Field, Input, SearchInput, Select, type InputProps, type SelectProps } from "./Input";
+export { ConfirmDialog, Modal } from "./Modal";
 export { PageHeader } from "./PageHeader";
 export { Pagination } from "./Pagination";
 export { LoadingBlock, Spinner } from "./Spinner";

@@ -1,0 +1,137 @@
+import { useCallback, useMemo, useState } from "react";
+import { toNumber } from "@/lib/format";
+import type { CartLine, PriceListRef, ProductDetail, ProductPrice } from "./types";
+
+/** Mismo redondeo que el backend, para que los totales cierren al centavo. */
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/** Precio del producto en la lista elegida, o el primero que tenga. */
+function resolvePrice(
+  prices: ProductPrice[],
+  priceListId: number | null
+): { unitPrice: number; listPrice: number | null } {
+  const enLista = priceListId !== null ? prices.find((p) => p.priceListId === priceListId) : undefined;
+  const elegido = enLista ?? prices[0];
+
+  if (elegido === undefined) return { unitPrice: 0, listPrice: null };
+
+  const price = toNumber(elegido.price);
+  // listPrice solo si es realmente el de la lista activa: si el producto
+  // no cotiza en esa lista, no hay contra qué comparar un descuento.
+  return { unitPrice: price, listPrice: enLista !== undefined ? price : null };
+}
+
+export function usePosCart() {
+  const [lines, setLines] = useState<CartLine[]>([]);
+  const [priceListId, setPriceListId] = useState<number | null>(null);
+  const [knownPriceLists, setKnownPriceLists] = useState<PriceListRef[]>([]);
+
+  /**
+   * Suma un producto. Si ya está en el carrito solo incrementa la
+   * cantidad: escanear dos veces el mismo código no duplica la línea.
+   */
+  const addProduct = useCallback(
+    (product: ProductDetail, quantity = 1) => {
+      // Acumular las listas vistas: sin endpoint de listas de precios, es
+      // la única forma de saber cuáles existen.
+      setKnownPriceLists((previas) => {
+        const porId = new Map(previas.map((lista) => [lista.id, lista]));
+        for (const precio of product.prices) porId.set(precio.priceList.id, precio.priceList);
+        return [...porId.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+      });
+
+      // La primera carga fija la lista de trabajo si todavía no hay una
+      const listaActiva = priceListId ?? product.prices[0]?.priceListId ?? null;
+      if (priceListId === null && listaActiva !== null) setPriceListId(listaActiva);
+
+      setLines((previas) => {
+        const existente = previas.find((linea) => linea.productId === product.id);
+        if (existente !== undefined) {
+          return previas.map((linea) =>
+            linea.productId === product.id
+              ? { ...linea, quantity: round2(linea.quantity + quantity) }
+              : linea
+          );
+        }
+
+        const { unitPrice, listPrice } = resolvePrice(product.prices, listaActiva);
+        return [
+          ...previas,
+          {
+            productId: product.id,
+            sku: product.sku,
+            name: product.name,
+            unit: product.unit,
+            quantity,
+            unitPrice,
+            listPrice,
+            discount: 0,
+            prices: product.prices,
+          },
+        ];
+      });
+    },
+    [priceListId]
+  );
+
+  const setQuantity = useCallback((productId: number, quantity: number) => {
+    setLines((previas) =>
+      previas.map((linea) =>
+        linea.productId === productId ? { ...linea, quantity: round2(quantity) } : linea
+      )
+    );
+  }, []);
+
+  const setUnitPrice = useCallback((productId: number, unitPrice: number) => {
+    setLines((previas) =>
+      previas.map((linea) =>
+        linea.productId === productId ? { ...linea, unitPrice: round2(unitPrice) } : linea
+      )
+    );
+  }, []);
+
+  const removeLine = useCallback((productId: number) => {
+    setLines((previas) => previas.filter((linea) => linea.productId !== productId));
+  }, []);
+
+  const clear = useCallback(() => setLines([]), []);
+
+  /** Cambiar de lista recalcula los precios de todo el carrito. */
+  const changePriceList = useCallback((nuevaListaId: number) => {
+    setPriceListId(nuevaListaId);
+    setLines((previas) =>
+      previas.map((linea) => {
+        const { unitPrice, listPrice } = resolvePrice(linea.prices, nuevaListaId);
+        return { ...linea, unitPrice, listPrice };
+      })
+    );
+  }, []);
+
+  /**
+   * Totales calculados igual que el backend (mismo orden de redondeo):
+   * si difirieran, la validación "pagos == total" fallaría por centavos.
+   */
+  const totals = useMemo(() => {
+    const subtotal = round2(lines.reduce((suma, l) => suma + l.unitPrice * l.quantity, 0));
+    const discount = round2(lines.reduce((suma, l) => suma + l.discount, 0));
+    return { subtotal, discount, total: round2(subtotal - discount) };
+  }, [lines]);
+
+  const units = useMemo(() => round2(lines.reduce((suma, l) => suma + l.quantity, 0)), [lines]);
+
+  return {
+    lines,
+    totals,
+    units,
+    priceListId,
+    knownPriceLists,
+    addProduct,
+    setQuantity,
+    setUnitPrice,
+    removeLine,
+    clear,
+    changePriceList,
+  };
+}
+
+export { round2 };

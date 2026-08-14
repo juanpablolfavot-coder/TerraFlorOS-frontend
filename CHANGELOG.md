@@ -1,5 +1,52 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.2.0] — POS de ventas y apertura de caja
+
+- **Apertura de caja** (`/caja`, y como primer paso del POS): elegir caja de
+  la sucursal y declarar el saldo inicial. Las cajas ya abiertas se muestran
+  deshabilitadas con quién y cuándo la abrió. Sin el permiso `cash.open` se
+  explica que hay que pedírselo a un encargado
+- **Estado del turno** en `/caja`: saldo inicial, ingresos, egresos, efectivo
+  esperado y cobros por medio de pago, con el resumen en vivo del backend
+- **POS de ventas** (`/ventas`, permiso `sales.create`), en dos zonas:
+  - Un solo buscador que sirve para escanear y para buscar. Enter busca el
+    código exacto por `/by-barcode/:code` y lo manda derecho al carrito; al
+    tipear muestra resultados por nombre o SKU con debounce. Después de cada
+    alta el foco vuelve al buscador: se carga una venta entera sin el mouse
+  - Carrito con cantidad editable, precio unitario (bloqueado sin
+    `sales.discount`), subtotal por línea y total grande
+  - Panel de cobro con **pago mixto**: varias filas método + monto, con
+    cuánto falta o sobra en vivo. Cobrar se habilita solo cuando la suma da
+    exacta, que es lo que exige el backend
+  - Errores por acción: el 409 de stock dice qué producto y cuánto hay; el
+    409 de caja vuelve a la pantalla de apertura
+  - Confirmación antes de vaciar el carrito
+- Los ítems de menú **Ventas** y **Caja** dejaron de ser provisorios
+- Nuevos componentes `Modal` y `ConfirmDialog` en `components/ui/`
+
+### Diferencias con el contrato que encontramos en el backend
+
+- `POST /api/cash/sessions` recibe **`cashRegisterId`**, no `registerId`, y su
+  schema es `.strict()`: mandar el otro nombre devuelve 400. El resto de los
+  endpoints sí usa `registerId`
+- **`GET /api/payment-methods` no existe.** Sin él no se puede cobrar: el POS
+  muestra el motivo y deja el botón deshabilitado, pero el carrito y los
+  totales siguen funcionando. No se cablearon ids fijos a propósito, porque
+  cobrar con el método equivocado sería un error silencioso en los datos
+- **`GET /api/price-lists` no existe** y el detalle de producto no dice cuál
+  es la lista por defecto. El POS deduce las listas de los precios de los
+  productos cargados y, si hay más de una, deja elegir. Manda siempre el
+  `unitPrice` para que su total sea idéntico al del backend
+- **No hay endpoint de clientes**, así que la venta va sin cliente. El
+  backend acepta `customerId` opcional, listo para cuando exista
+
+### Corregido
+
+- Choque de utilidades de Tailwind: los controles de `ui/` traen `w-full` y
+  pasarles un `w-*` por `className` dejaba compitiendo dos anchos, con el
+  selector de método de pago aplastado. Los anchos fijos ahora van en un
+  contenedor
+
 ## [0.1.1] — El refresh de sesión ya no manda cuerpo
 
 - `POST /api/auth/refresh` y `POST /api/auth/logout` viajaban con el literal

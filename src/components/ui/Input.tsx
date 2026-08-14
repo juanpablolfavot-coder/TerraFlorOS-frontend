@@ -1,6 +1,12 @@
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * Los controles ocupan todo el ancho disponible. Para achicarlos, envolvelos
+ * en un contenedor con el ancho deseado — NO pases `w-*` por `className`:
+ * quedarían dos utilidades de width compitiendo y gana la que Tailwind haya
+ * puesto última en la hoja de estilos, no la del call site.
+ */
 const FIELD_BASE =
   "w-full rounded-lg bg-white px-3.5 text-sm text-stone-900 placeholder:text-stone-400 " +
   "ring-1 ring-stone-300 ring-inset transition-shadow " +
