@@ -40,7 +40,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Caja",
     to: "/caja",
     icon: IconCash,
-    anyOf: [PERMISSIONS.CASH_OPEN, PERMISSIONS.CASH_MOVEMENT, PERMISSIONS.CASH_CLOSE],
+    // Igual que el backend: leer la caja alcanza con sales.create
+    anyOf: [
+      PERMISSIONS.SALES_CREATE,
+      PERMISSIONS.CASH_OPEN,
+      PERMISSIONS.CASH_MOVEMENT,
+      PERMISSIONS.CASH_CLOSE,
+    ],
   },
   {
     label: "Productos",

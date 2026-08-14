@@ -35,8 +35,15 @@ export function AppRoutes() {
 
           <Route
             element={
+              // Leer el estado de la caja alcanza con sales.create (así lo
+              // resuelve el backend); mover y cerrar se ocultan con <Can>.
               <RequirePermission
-                anyOf={[PERMISSIONS.CASH_OPEN, PERMISSIONS.CASH_MOVEMENT, PERMISSIONS.CASH_CLOSE]}
+                anyOf={[
+                  PERMISSIONS.SALES_CREATE,
+                  PERMISSIONS.CASH_OPEN,
+                  PERMISSIONS.CASH_MOVEMENT,
+                  PERMISSIONS.CASH_CLOSE,
+                ]}
               />
             }
           >

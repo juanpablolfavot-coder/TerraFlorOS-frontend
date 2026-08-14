@@ -166,11 +166,11 @@ Implementado:
 - **Productos**: listado con búsqueda, filtros por tipo/categoría/estado y
   paginación
 - **Ventas (POS)**: buscador que escanea y busca, carrito, pago mixto y cobro
-- **Caja**: apertura con saldo inicial y estado del turno en vivo
+- **Caja**: apertura, resumen del turno en vivo, movimientos manuales
+  (gasto, retiro, depósito) y cierre con arqueo
 
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
-Inventario, Compras, Proveedores y Usuarios. También los movimientos
-manuales de caja y el cierre con arqueo.
+Inventario, Compras, Proveedores y Usuarios.
 
 ---
 
@@ -190,6 +190,13 @@ Detalles del contrato que conviene tener presentes:
 - **`GET /api/payment-methods`** devuelve los métodos activos para cobrar
 - **Todavía no hay endpoint de clientes**, así que la venta va sin cliente.
   El backend acepta `customerId` opcional, listo para cuando exista
+- **Los movimientos de caja no se pueden listar:** `/sessions/current` solo
+  devuelve `movementsCount`, no el detalle. La pantalla muestra los que se
+  cargaron desde ahí y aclara cuántos lleva el turno según el servidor
+- **El cierre es irreversible:** la sesión cerrada es inmutable y un segundo
+  cierre devuelve 409, por eso el arqueo pide confirmación explícita
+- `cashIn` del resumen incluye las ventas en efectivo, no solo los depósitos
+  manuales
 - El POS manda siempre el `unitPrice` de cada línea para que su total sea
   idéntico al que calcula el backend: la validación «pagos == total» es
   exacta y un centavo de diferencia rechaza la venta

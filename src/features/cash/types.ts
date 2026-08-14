@@ -72,3 +72,53 @@ export interface OpenSessionBody {
   registerId: number;
   openingAmount: number;
 }
+
+// ---------------------------------------------------------------
+// Movimientos manuales
+// ---------------------------------------------------------------
+
+/**
+ * Tipos que el usuario puede registrar a mano. El enum del backend tiene
+ * además SALE_CASH, REFUND y ADJUSTMENT, que los crea solo el sistema.
+ */
+export type ManualMovementType = "EXPENSE" | "WITHDRAWAL" | "DEPOSIT";
+
+/** POST /api/cash/sessions/:id/movements — el schema es `.strict()`. */
+export interface CreateMovementBody {
+  type: ManualMovementType;
+  amount: number;
+  description: string;
+}
+
+/**
+ * Movimiento devuelto por el backend (201).
+ * `amount` viene CON SIGNO: DEPOSIT entra positivo, EXPENSE y WITHDRAWAL
+ * negativos. El monto que se manda, en cambio, es siempre positivo.
+ */
+export interface CashMovement {
+  id: number;
+  cashSessionId: number;
+  type: ManualMovementType | "SALE_CASH" | "REFUND" | "ADJUSTMENT";
+  amount: Decimal;
+  description: string | null;
+  userId: number;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------
+// Cierre con arqueo
+// ---------------------------------------------------------------
+
+/** POST /api/cash/sessions/:id/close — `.strict()`. */
+export interface CloseSessionBody {
+  countedAmount: number;
+  notes?: string | null;
+}
+
+/** Sesión ya cerrada: los tres importes del arqueo dejan de ser null. */
+export interface ClosedSession extends Omit<CashSession, "openedBy"> {
+  closedAt: string;
+  expectedAmount: Decimal;
+  countedAmount: Decimal;
+  difference: Decimal;
+}

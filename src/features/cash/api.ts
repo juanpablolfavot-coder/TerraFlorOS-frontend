@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
-import type { CashRegister, CashSession, CurrentSession, OpenSessionBody } from "./types";
+import type {
+  CashMovement,
+  CashRegister,
+  CashSession,
+  ClosedSession,
+  CloseSessionBody,
+  CreateMovementBody,
+  CurrentSession,
+  OpenSessionBody,
+} from "./types";
 
 export const cashKeys = {
   all: ["cash"] as const,
@@ -58,6 +67,52 @@ export function useOpenSession() {
     },
     onSuccess: () => {
       // Cambió el estado de las cajas: que el POS lo vea enseguida
+      void queryClient.invalidateQueries({ queryKey: cashKeys.all });
+    },
+  });
+}
+
+/**
+ * Movimiento manual de efectivo (gasto, retiro o depósito).
+ * Solo sobre una sesión abierta: el backend responde 409 si está cerrada.
+ */
+export function useAddMovement(sessionId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: CreateMovementBody) => {
+      if (sessionId === null) throw new Error("No hay una sesión de caja abierta");
+      const { data } = await api.post<CashMovement>(
+        `/api/cash/sessions/${sessionId}/movements`,
+        body
+      );
+      return data;
+    },
+    onSuccess: () => {
+      // El movimiento cambia el efectivo esperado del turno
+      void queryClient.invalidateQueries({ queryKey: cashKeys.all });
+    },
+  });
+}
+
+/**
+ * Cierre con arqueo. El backend calcula `expectedAmount` y `difference`
+ * a partir del `countedAmount` declarado. Una sesión cerrada es
+ * inmutable: reintentar el cierre devuelve 409.
+ */
+export function useCloseSession(sessionId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: CloseSessionBody) => {
+      if (sessionId === null) throw new Error("No hay una sesión de caja abierta");
+      const { data } = await api.post<ClosedSession>(
+        `/api/cash/sessions/${sessionId}/close`,
+        body
+      );
+      return data;
+    },
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
     },
   });

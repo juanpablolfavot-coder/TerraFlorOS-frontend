@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Badge,
+  Button,
   Card,
   CardHeader,
   EmptyState,
@@ -15,12 +16,15 @@ import {
   THead,
   TR,
 } from "@/components/ui";
-import { PERMISSIONS, useAuth } from "@/features/auth";
+import { Can, PERMISSIONS, useAuth } from "@/features/auth";
 import { getApiErrorMessage } from "@/lib/api";
-import { formatDateTime, formatMoney, formatNumber } from "@/lib/format";
+import { formatDateTime, formatMoney, formatNumber, toNumber } from "@/lib/format";
 import { useDocumentTitle } from "@/lib/hooks";
 import { useCurrentSession, useRegisters } from "./api";
+import { CashMovementsCard } from "./CashMovementsCard";
+import { CloseRegisterDialog } from "./CloseRegisterDialog";
 import { OpenRegisterScreen } from "./OpenRegisterScreen";
+import type { ClosedSession } from "./types";
 
 export function CashPage() {
   useDocumentTitle("Caja");
@@ -31,6 +35,9 @@ export function CashPage() {
 
   const registers = useRegisters(puedeLeer);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+  /** Resumen del último cierre, para mostrarlo cuando ya no hay sesión. */
+  const [ultimoCierre, setUltimoCierre] = useState<ClosedSession | null>(null);
 
   // Al cargar, seleccionar la primera caja abierta (o la primera que haya)
   useEffect(() => {
@@ -112,6 +119,45 @@ export function CashPage() {
         </Card>
       )}
 
+      {/* Resumen del cierre recién hecho: la sesión ya no existe */}
+      {ultimoCierre !== null && (
+        <Card className="space-y-5 border-emerald-200 bg-emerald-50/40">
+          <CardHeader
+            title="Caja cerrada"
+            description={`${ultimoCierre.cashRegister.name} · ${formatDateTime(ultimoCierre.closedAt)}`}
+          />
+          <dl className="grid gap-6 sm:grid-cols-3">
+            <div className="space-y-1">
+              <dt className="text-sm text-stone-500">Esperado</dt>
+              <dd className="tabular text-xl font-semibold">
+                {formatMoney(ultimoCierre.expectedAmount)}
+              </dd>
+            </div>
+            <div className="space-y-1">
+              <dt className="text-sm text-stone-500">Contado</dt>
+              <dd className="tabular text-xl font-semibold">
+                {formatMoney(ultimoCierre.countedAmount)}
+              </dd>
+            </div>
+            <div className="space-y-1">
+              <dt className="text-sm text-stone-500">Diferencia</dt>
+              <dd
+                className={
+                  toNumber(ultimoCierre.difference) === 0
+                    ? "tabular text-xl font-semibold text-emerald-700"
+                    : "tabular text-xl font-semibold text-amber-700"
+                }
+              >
+                {formatMoney(ultimoCierre.difference)}
+              </dd>
+            </div>
+          </dl>
+          <Button variant="secondary" size="sm" onClick={() => setUltimoCierre(null)}>
+            Entendido
+          </Button>
+        </Card>
+      )}
+
       {seleccionada === null ? (
         <EmptyState title="No hay cajas configuradas" />
       ) : seleccionada.openSession === null ? (
@@ -140,7 +186,21 @@ export function CashPage() {
                       )}`
                     : undefined
                 }
-                action={<Badge tone="success">Abierta</Badge>}
+                action={
+                  <div className="flex items-center gap-3">
+                    <Badge tone="success">Abierta</Badge>
+                    <Can permission={PERMISSIONS.CASH_CLOSE}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setCerrando(true)}
+                        disabled={current.data === null || current.data === undefined}
+                      >
+                        Cerrar caja
+                      </Button>
+                    </Can>
+                  </div>
+                }
               />
             </div>
 
@@ -182,11 +242,29 @@ export function CashPage() {
             )}
           </Card>
 
-          <p className="text-sm text-stone-400">
-            Los movimientos manuales y el cierre con arqueo todavía no están implementados en la
-            interfaz.
-          </p>
+          <Can permission={PERMISSIONS.CASH_MOVEMENT}>
+            {current.data !== null && current.data !== undefined && (
+              <CashMovementsCard
+                sessionId={current.data.session.id}
+                movementsCount={current.data.summary.movementsCount}
+              />
+            )}
+          </Can>
         </div>
+      )}
+
+      {current.data !== null && current.data !== undefined && (
+        <CloseRegisterDialog
+          open={cerrando}
+          sessionId={current.data.session.id}
+          registerName={current.data.session.cashRegister.name}
+          expectedCash={current.data.summary.expectedCash}
+          onClose={() => setCerrando(false)}
+          onClosed={(sesion) => {
+            setCerrando(false);
+            setUltimoCierre(sesion);
+          }}
+        />
       )}
     </div>
   );

@@ -1,5 +1,31 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.4.0] — Gestión de caja: movimientos y cierre con arqueo
+
+- **Movimientos manuales** (requiere `cash.movement`, oculto con `<Can>`):
+  alta de gasto, retiro o depósito con descripción obligatoria. Al
+  registrarlo se refresca el resumen del turno, así que el efectivo esperado
+  se actualiza en el momento
+- **Cierre con arqueo** (requiere `cash.close`): diálogo en dos pasos —
+  primero se declara el efectivo contado y se ve la diferencia contra lo
+  esperado, y recién después se confirma. El cierre es irreversible, así que
+  la confirmación es explícita
+- La diferencia se muestra en vivo mientras se tipea: verde si cuadra,
+  ámbar si hay faltante, celeste si hay sobrante. Sin dramatizar
+- Al cerrar se muestra el resumen final (esperado, contado, diferencia) y la
+  pantalla vuelve al estado «sin caja abierta»
+- Un usuario con `sales.create` pero sin `cash.movement` ni `cash.close` ve
+  el resumen del turno sin los botones de mover ni cerrar. La ruta `/caja` y
+  su ítem de menú se abrieron a `sales.create` para reflejar lo que ya
+  permite el backend en las lecturas
+
+### Limitación del backend
+
+- **No hay endpoint que liste los movimientos de una sesión.**
+  `/sessions/current` devuelve solo `movementsCount`. La tabla lista los
+  movimientos cargados desde esa pantalla y aclara el total del turno según
+  el servidor, en vez de aparentar un historial completo
+
 ## [0.3.0] — POS alineado con los endpoints nuevos del backend
 
 - `POST /api/cash/sessions` ahora manda **`registerId`** (antes
