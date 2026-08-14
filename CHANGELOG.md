@@ -1,5 +1,34 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.8.0] — Precio y stock en la grilla + movimientos reales de caja
+
+- **Grilla de productos con precio y stock.** El listado ahora devuelve
+  `defaultPrice` y `availableStock`, así que la tabla dejó de esconder esas
+  columnas. Si el producto no cotiza en la lista por defecto, la celda dice
+  «Sin precio» en vez de mostrar un cero que no es cierto
+- El stock disponible se pinta en ámbar cuando está en o por debajo del
+  mínimo, con el mínimo como dato secundario en la misma celda. La columna
+  «Mínimo» aparte desapareció: era la misma información en dos lugares
+- **Movimientos de caja reales.** La tabla del turno sale de
+  `GET /api/cash/sessions/:id/movements`, no de lo que se hubiera cargado en
+  esta pantalla. Ahora se ven las ventas en efectivo y lo que registró otro
+  cajero, con la columna «Usuario» para saber quién hizo cada cosa
+- Los movimientos automáticos (`SALE_CASH`, `REFUND`) se distinguen de los
+  cargados a mano por el color de la etiqueta
+- Se fue la nota que aclaraba que solo se listaban los movimientos cargados
+  desde la pantalla: ya no es cierta
+- Al registrar un movimiento la lista se actualiza sola, porque la clave de
+  caché cuelga de `["cash"]` y la mutación invalida esa rama entera
+
+### Sobre el contrato del backend
+
+- `defaultPrice` y `availableStock` llegan como `number` ya calculado, no
+  como `Decimal` string: los calcula el backend con agregados
+- `availableStock` es Σ(`currentQty` − `reservedQty`) de los lotes sin contar
+  los de cuarentena, el mismo criterio con el que el POS arma el FIFO
+- El endpoint de movimientos no pagina y ordena cronológicamente ascendente;
+  leerlo pide `sales.create` o `cash.open`, igual que el resto de la caja
+
 ## [0.7.0] — Proveedores como pantalla propia
 
 - **Padrón de proveedores** con búsqueda por razón social, nombre comercial

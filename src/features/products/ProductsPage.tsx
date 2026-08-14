@@ -20,12 +20,19 @@ import {
 } from "@/components/ui";
 import { Can, PERMISSIONS, useAuth } from "@/features/auth";
 import { getApiErrorMessage } from "@/lib/api";
-import { formatMoney, formatQuantity } from "@/lib/format";
+import { formatMoney, formatQuantity, toNumber } from "@/lib/format";
+import { cn } from "@/lib/cn";
 import { useDebouncedValue, useDocumentTitle } from "@/lib/hooks";
 import { flattenCategories, useCategoryTree, useProducts } from "./api";
-import type { ProductKind, ProductsQuery } from "./types";
+import type { ProductKind, ProductListItem, ProductsQuery } from "./types";
 
 const PAGE_SIZE = 20;
+
+/** El disponible ya tocó el mínimo definido para ese producto. */
+function bajoMinimo(producto: ProductListItem): boolean {
+  if (producto.minStock === null) return false;
+  return producto.availableStock <= toNumber(producto.minStock);
+}
 
 type ActiveFilter = "all" | "active" | "inactive";
 type FavoriteFilter = "all" | "favorites";
@@ -71,7 +78,7 @@ export function ProductsPage() {
   const categories = useCategoryTree();
   const categoryOptions = flattenCategories(categories.data);
 
-  const columnCount = showCost ? 7 : 6;
+  const columnCount = showCost ? 8 : 7;
 
   return (
     <div className="space-y-8">
@@ -162,7 +169,8 @@ export function ProductsPage() {
               <TH>Categoría</TH>
               <TH>Tipo</TH>
               {showCost && <TH align="right">Costo prom.</TH>}
-              <TH align="right">Mínimo</TH>
+              <TH align="right">Precio</TH>
+              <TH align="right">Stock</TH>
               <TH align="right">Estado</TH>
             </TR>
           </THead>
@@ -213,8 +221,25 @@ export function ProductsPage() {
                     </TD>
                   )}
 
-                  <TD align="right" numeric className="text-stone-500">
-                    {product.minStock === null ? "—" : formatQuantity(product.minStock)}
+                  <TD align="right" numeric>
+                    {product.defaultPrice === null ? (
+                      <span className="text-stone-400">Sin precio</span>
+                    ) : (
+                      <span className="font-medium text-stone-900">
+                        {formatMoney(product.defaultPrice)}
+                      </span>
+                    )}
+                  </TD>
+
+                  <TD align="right" numeric>
+                    <span className={cn(bajoMinimo(product) && "font-medium text-amber-700")}>
+                      {formatQuantity(product.availableStock)}
+                    </span>
+                    {product.minStock !== null && (
+                      <span className="block text-xs text-stone-400">
+                        mín. {formatQuantity(product.minStock)}
+                      </span>
+                    )}
                   </TD>
 
                   <TD align="right">

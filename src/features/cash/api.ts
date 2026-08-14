@@ -9,12 +9,14 @@ import type {
   CreateMovementBody,
   CurrentSession,
   OpenSessionBody,
+  SessionMovement,
 } from "./types";
 
 export const cashKeys = {
   all: ["cash"] as const,
   registers: ["cash", "registers"] as const,
   current: (registerId: number) => ["cash", "current", registerId] as const,
+  movements: (sessionId: number) => ["cash", "movements", sessionId] as const,
 };
 
 /**
@@ -68,6 +70,23 @@ export function useOpenSession() {
     onSuccess: () => {
       // Cambió el estado de las cajas: que el POS lo vea enseguida
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
+    },
+  });
+}
+
+/**
+ * Movimientos del turno, completos y en orden cronológico. Leer requiere
+ * `sales.create` o `cash.open`, igual que el resto de las lecturas de caja.
+ */
+export function useSessionMovements(sessionId: number | null) {
+  return useQuery({
+    queryKey: cashKeys.movements(sessionId ?? 0),
+    enabled: sessionId !== null,
+    queryFn: async () => {
+      const { data } = await api.get<SessionMovement[]>(
+        `/api/cash/sessions/${sessionId}/movements`
+      );
+      return data;
     },
   });
 }

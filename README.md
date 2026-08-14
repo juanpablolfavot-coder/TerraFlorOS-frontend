@@ -166,11 +166,11 @@ Implementado:
 - Login, cierre de sesión y restauración de sesión al recargar
 - Layout, menú filtrado por permisos, 403 y 404
 - **Panel**: ventas del día, medios de pago, plantas e inventario
-- **Productos**: listado con búsqueda, filtros por tipo/categoría/estado y
-  paginación
+- **Productos**: listado con búsqueda, filtros por tipo/categoría/estado,
+  precio y stock disponible por fila, y paginación
 - **Ventas (POS)**: buscador que escanea y busca, carrito, pago mixto y cobro
-- **Caja**: apertura, resumen del turno en vivo, movimientos manuales
-  (gasto, retiro, depósito) y cierre con arqueo
+- **Caja**: apertura, resumen del turno en vivo, detalle completo de
+  movimientos (manuales y automáticos) y cierre con arqueo
 - **Catálogo**: lista con filtros, alta y edición de productos con ficha
   botánica, precios por lista con historial, códigos de barras y árbol de
   categorías
@@ -200,9 +200,11 @@ Detalles del contrato que conviene tener presentes:
 - **`GET /api/payment-methods`** devuelve los métodos activos para cobrar
 - **Todavía no hay endpoint de clientes**, así que la venta va sin cliente.
   El backend acepta `customerId` opcional, listo para cuando exista
-- **Los movimientos de caja no se pueden listar:** `/sessions/current` solo
-  devuelve `movementsCount`, no el detalle. La pantalla muestra los que se
-  cargaron desde ahí y aclara cuántos lleva el turno según el servidor
+- **`GET /api/cash/sessions/:id/movements`** devuelve el detalle completo del
+  turno: los manuales y los automáticos (`SALE_CASH` de cada venta en
+  efectivo), de cualquier usuario, en orden cronológico y sin paginar. Cada
+  movimiento trae el `user` que lo hizo. Leerlo pide los mismos permisos que
+  el resto de las lecturas de caja (`sales.create` o `cash.open`)
 - **El cierre es irreversible:** la sesión cerrada es inmutable y un segundo
   cierre devuelve 409, por eso el arqueo pide confirmación explícita
 - `cashIn` del resumen incluye las ventas en efectivo, no solo los depósitos
@@ -210,9 +212,11 @@ Detalles del contrato que conviene tener presentes:
 - El POS manda siempre el `unitPrice` de cada línea para que su total sea
   idéntico al que calcula el backend: la validación «pagos == total» es
   exacta y un centavo de diferencia rechaza la venta
-- **El listado de productos no trae precios ni stock** (`productListInclude`
-  del backend es solo categoría y ficha resumida), así que la tabla no tiene
-  esas columnas: sacarlas exigiría una consulta por fila
+- **El listado de productos trae `defaultPrice` y `availableStock`**, los dos
+  como `number` ya calculado (no son `Decimal`). `defaultPrice` es el precio
+  en la lista por defecto y viene `null` si el producto no cotiza en ella;
+  `availableStock` es la suma de `currentQty − reservedQty` de los lotes sin
+  contar los de cuarentena, el mismo criterio que usa el POS
 - **Los costos son de solo lectura en el catálogo.** `lastCost` y
   `averageCost` se actualizan desde las recepciones de compra; el formulario
   los muestra sin editarlos y solo con `products.view_cost`

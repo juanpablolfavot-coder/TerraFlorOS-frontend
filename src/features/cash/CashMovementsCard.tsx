@@ -7,6 +7,7 @@ import {
   CardHeader,
   EmptyState,
   Input,
+  LoadingBlock,
   Select,
   Table,
   TBody,
@@ -15,10 +16,11 @@ import {
   THead,
   TR,
 } from "@/components/ui";
+import { Can, PERMISSIONS } from "@/features/auth";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney, toNumber } from "@/lib/format";
-import { useAddMovement } from "./api";
-import type { CashMovement, ManualMovementType } from "./types";
+import { useAddMovement, useSessionMovements } from "./api";
+import type { CashMovementType, ManualMovementType } from "./types";
 
 const TIPOS: Array<{ value: ManualMovementType; label: string; ayuda: string }> = [
   { value: "EXPENSE", label: "Gasto", ayuda: "Plata que sale para pagar algo" },
@@ -26,7 +28,7 @@ const TIPOS: Array<{ value: ManualMovementType; label: string; ayuda: string }> 
   { value: "DEPOSIT", label: "Depósito", ayuda: "Plata que entra a la caja" },
 ];
 
-const ETIQUETA: Record<string, string> = {
+const ETIQUETA: Record<CashMovementType, string> = {
   EXPENSE: "Gasto",
   WITHDRAWAL: "Retiro",
   DEPOSIT: "Depósito",
@@ -35,28 +37,23 @@ const ETIQUETA: Record<string, string> = {
   ADJUSTMENT: "Ajuste",
 };
 
+/** Los automáticos se distinguen de los que carga una persona. */
+const AUTOMATICOS: CashMovementType[] = ["SALE_CASH", "REFUND"];
+
 /**
- * Movimientos manuales del turno.
+ * Movimientos del turno.
  *
- * OJO: el backend no expone un endpoint que liste los movimientos de una
- * sesión — `/sessions/current` solo devuelve `movementsCount`. Así que la
- * tabla muestra los registrados DESDE ESTA PANTALLA, y al lado se aclara
- * cuántos lleva el turno según el servidor.
+ * La lista sale de `GET /sessions/:id/movements`, así que está completa:
+ * incluye las ventas en efectivo y los movimientos que haya cargado otro
+ * cajero, no solo lo que se hizo desde esta pantalla.
  */
-export function CashMovementsCard({
-  sessionId,
-  movementsCount,
-}: {
-  sessionId: number;
-  /** Total del turno según el backend, incluidas las ventas en efectivo. */
-  movementsCount: number;
-}) {
+export function CashMovementsCard({ sessionId }: { sessionId: number }) {
+  const movimientos = useSessionMovements(sessionId);
   const addMovement = useAddMovement(sessionId);
 
   const [type, setType] = useState<ManualMovementType>("EXPENSE");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [registrados, setRegistrados] = useState<CashMovement[]>([]);
 
   const monto = Number(amount.replace(",", "."));
   const montoValido = Number.isFinite(monto) && monto > 0;
@@ -69,8 +66,9 @@ export function CashMovementsCard({
     addMovement.mutate(
       { type, amount: monto, description: description.trim() },
       {
-        onSuccess: (movimiento) => {
-          setRegistrados((previos) => [movimiento, ...previos]);
+        // La mutación invalida la caché de caja, así que la tabla se
+        // vuelve a pedir sola con el movimiento nuevo incluido.
+        onSuccess: () => {
           setAmount("");
           setDescription("");
         },
@@ -78,116 +76,126 @@ export function CashMovementsCard({
     );
   };
 
+  const lista = movimientos.data ?? [];
+
   return (
     <Card flush>
       <div className="space-y-6 p-6 sm:p-8">
         <CardHeader
           title="Movimientos de caja"
-          description="Gastos, retiros y depósitos del turno."
+          description="Todo lo que entró y salió del turno, incluidas las ventas en efectivo."
         />
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Select
-              label="Tipo"
-              value={type}
-              onChange={(event) => setType(event.target.value as ManualMovementType)}
-              hint={TIPOS.find((t) => t.value === type)?.ayuda}
+        <Can permission={PERMISSIONS.CASH_MOVEMENT}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Select
+                label="Tipo"
+                value={type}
+                onChange={(event) => setType(event.target.value as ManualMovementType)}
+                hint={TIPOS.find((t) => t.value === type)?.ayuda}
+              >
+                {TIPOS.map((tipo) => (
+                  <option key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </Select>
+
+              <Input
+                label="Monto"
+                inputMode="decimal"
+                placeholder="0,00"
+                required
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                error={amount !== "" && !montoValido ? "Ingresá un monto mayor a cero" : undefined}
+              />
+
+              <Input
+                label="Descripción"
+                required
+                placeholder="Ej: flete de plantines"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                hint="Obligatoria: queda en la auditoría."
+              />
+            </div>
+
+            {addMovement.error !== null && (
+              <Alert tone="danger" title="No se pudo registrar el movimiento">
+                {getApiErrorMessage(addMovement.error)}
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              loading={addMovement.isPending}
+              disabled={!montoValido || !descripcionValida}
             >
-              {TIPOS.map((tipo) => (
-                <option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
-                </option>
-              ))}
-            </Select>
-
-            <Input
-              label="Monto"
-              inputMode="decimal"
-              placeholder="0,00"
-              required
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              error={amount !== "" && !montoValido ? "Ingresá un monto mayor a cero" : undefined}
-            />
-
-            <Input
-              label="Descripción"
-              required
-              placeholder="Ej: flete de plantines"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              hint="Obligatoria: queda en la auditoría."
-            />
-          </div>
-
-          {addMovement.error !== null && (
-            <Alert tone="danger" title="No se pudo registrar el movimiento">
-              {getApiErrorMessage(addMovement.error)}
-            </Alert>
-          )}
-
-          <Button
-            type="submit"
-            loading={addMovement.isPending}
-            disabled={!montoValido || !descripcionValida}
-          >
-            Registrar movimiento
-          </Button>
-        </form>
+              Registrar movimiento
+            </Button>
+          </form>
+        </Can>
       </div>
 
-      {registrados.length === 0 ? (
+      {movimientos.isPending ? (
+        <LoadingBlock label="Cargando movimientos…" />
+      ) : movimientos.error !== null ? (
+        <Alert tone="danger" className="mx-6 mb-6" title="No se pudieron cargar los movimientos">
+          {getApiErrorMessage(movimientos.error)}
+        </Alert>
+      ) : lista.length === 0 ? (
         <EmptyState
-          title="Sin movimientos registrados desde acá"
-          description={
-            movementsCount > 0
-              ? `El turno lleva ${movementsCount} movimientos en total, contando las ventas en efectivo.`
-              : "Los gastos, retiros y depósitos que cargues van a aparecer acá."
-          }
+          title="Todavía no hubo movimientos"
+          description="Las ventas en efectivo y los gastos del turno van a aparecer acá."
         />
       ) : (
-        <>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Hora</TH>
-                <TH>Tipo</TH>
-                <TH>Descripción</TH>
-                <TH align="right">Monto</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {registrados.map((movimiento) => {
-                const importe = toNumber(movimiento.amount);
-                return (
-                  <TR key={movimiento.id}>
-                    <TD className="text-stone-500">{formatDateTime(movimiento.createdAt)}</TD>
-                    <TD>
-                      <Badge tone={importe >= 0 ? "success" : "warning"}>
-                        {ETIQUETA[movimiento.type] ?? movimiento.type}
-                      </Badge>
-                    </TD>
-                    <TD>{movimiento.description ?? "—"}</TD>
-                    <TD
-                      align="right"
-                      numeric
-                      className={importe >= 0 ? "text-emerald-700" : "text-amber-700"}
-                    >
-                      {importe >= 0 ? "+" : "−"} {formatMoney(Math.abs(importe))}
-                    </TD>
-                  </TR>
-                );
-              })}
-            </TBody>
-          </Table>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Hora</TH>
+              <TH>Tipo</TH>
+              <TH>Descripción</TH>
+              <TH>Usuario</TH>
+              <TH align="right">Monto</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {lista.map((movimiento) => {
+              const importe = toNumber(movimiento.amount);
+              const automatico = AUTOMATICOS.includes(movimiento.type);
 
-          <p className="px-6 py-4 text-xs text-stone-400 sm:px-8">
-            Se listan los {registrados.length} movimientos cargados desde esta pantalla. El turno
-            lleva {movementsCount} en total (incluye las ventas en efectivo): el backend todavía no
-            expone el detalle completo.
-          </p>
-        </>
+              return (
+                <TR key={movimiento.id}>
+                  <TD className="text-stone-500">{formatDateTime(movimiento.createdAt)}</TD>
+
+                  <TD>
+                    <Badge
+                      tone={automatico ? "info" : importe >= 0 ? "success" : "warning"}
+                    >
+                      {ETIQUETA[movimiento.type] ?? movimiento.type}
+                    </Badge>
+                  </TD>
+
+                  <TD>{movimiento.description ?? "—"}</TD>
+
+                  <TD className="text-stone-500">
+                    {movimiento.user?.fullName ?? `Usuario #${movimiento.userId}`}
+                  </TD>
+
+                  <TD
+                    align="right"
+                    numeric
+                    className={importe >= 0 ? "text-emerald-700" : "text-amber-700"}
+                  >
+                    {importe >= 0 ? "+" : "−"} {formatMoney(Math.abs(importe))}
+                  </TD>
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
       )}
     </Card>
   );

@@ -90,6 +90,13 @@ export interface CreateMovementBody {
   description: string;
 }
 
+/** Tipos que puede tener un movimiento ya registrado. */
+export type CashMovementType =
+  | ManualMovementType
+  | "SALE_CASH"
+  | "REFUND"
+  | "ADJUSTMENT";
+
 /**
  * Movimiento devuelto por el backend (201).
  * `amount` viene CON SIGNO: DEPOSIT entra positivo, EXPENSE y WITHDRAWAL
@@ -98,10 +105,29 @@ export interface CreateMovementBody {
 export interface CashMovement {
   id: number;
   cashSessionId: number;
-  type: ManualMovementType | "SALE_CASH" | "REFUND" | "ADJUSTMENT";
+  type: CashMovementType;
   amount: Decimal;
   description: string | null;
   userId: number;
+  createdAt: string;
+}
+
+/**
+ * GET /api/cash/sessions/:id/movements
+ *
+ * Todos los movimientos del turno, en orden cronológico y sin paginar.
+ * Incluye los automáticos (`SALE_CASH` de las ventas en efectivo), no
+ * solo los cargados a mano, y los de cualquier usuario del turno.
+ */
+export interface SessionMovement {
+  id: number;
+  type: CashMovementType;
+  amount: Decimal;
+  description: string | null;
+  refType: string | null;
+  refId: number | null;
+  userId: number;
+  user: { id: number; username: string; fullName: string } | null;
   createdAt: string;
 }
 

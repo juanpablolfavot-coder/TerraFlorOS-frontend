@@ -242,14 +242,9 @@ export function CashPage() {
             )}
           </Card>
 
-          <Can permission={PERMISSIONS.CASH_MOVEMENT}>
-            {current.data !== null && current.data !== undefined && (
-              <CashMovementsCard
-                sessionId={current.data.session.id}
-                movementsCount={current.data.summary.movementsCount}
-              />
-            )}
-          </Can>
+          {current.data !== null && current.data !== undefined && (
+            <CashMovementsCard sessionId={current.data.session.id} />
+          )}
         </div>
       )}
 

@@ -38,6 +38,17 @@ export interface ProductListItem {
     scientificName: string | null;
     sizeLabel: string | null;
   } | null;
+  /**
+   * Precio en la lista por defecto. `null` si el producto no cotiza en
+   * ella. Llega como number (lo calcula el backend), no como Decimal.
+   */
+  defaultPrice: number | null;
+  /**
+   * Stock realmente vendible: suma de (currentQty − reservedQty) de los
+   * lotes, sin contar los que están en cuarentena. Mismo criterio que usa
+   * el POS al descontar por FIFO.
+   */
+  availableStock: number;
 }
 
 /** Envoltorio de listado que devuelve el backend. */
