@@ -31,7 +31,11 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
   // Imprescindible: el refresh token viaja en cookie httpOnly cross-origin.
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
+  // OJO: no fijar acá un Content-Type por defecto. Axios ya pone
+  // application/json solo cuando hay un objeto como cuerpo; forzarlo hace
+  // que TAMBIÉN serialice los cuerpos vacíos, y una request sin body
+  // termina viajando con el literal "null". express.json() en modo strict
+  // rechaza eso con 400 antes de llegar a la ruta.
 });
 
 // --------------------------------------------------------------------
@@ -57,8 +61,11 @@ api.interceptors.request.use((config) => {
 let refreshInFlight: Promise<string> | null = null;
 
 export function refreshAccessToken(): Promise<string> {
+  // Sin cuerpo: la sesión viaja en la cookie httpOnly. El segundo
+  // argumento va `undefined` y no `null` — `null` se serializa como el
+  // texto "null" y el backend lo rechaza con 400.
   refreshInFlight ??= api
-    .post<{ accessToken: string }>(AUTH_ROUTES.refresh, null, { skipAuthRefresh: true })
+    .post<{ accessToken: string }>(AUTH_ROUTES.refresh, undefined, { skipAuthRefresh: true })
     .then((response) => {
       const { accessToken } = response.data;
       setAccessToken(accessToken);

@@ -101,7 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await api.post(AUTH_ROUTES.logout, null, { skipAuthRefresh: true });
+      // `undefined`, no `null`: logout tampoco lleva cuerpo (ver api.ts).
+      await api.post(AUTH_ROUTES.logout, undefined, { skipAuthRefresh: true });
     } catch {
       // Si el backend no responde igual cerramos la sesión del lado del
       // cliente: el token en memoria se pierde de todos modos.
