@@ -19,7 +19,9 @@ export function OpenRegisterScreen({ onOpened }: { onOpened?: (registerId: numbe
   const openSession = useOpenSession();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [openingAmount, setOpeningAmount] = useState("0");
+  // Vacío, no "0": con un cero precargado tipear un monto lo anteponía
+  // ("012345") en vez de reemplazarlo.
+  const [openingAmount, setOpeningAmount] = useState("");
 
   // Las cajas se pueden leer con sales.create, pero abrirlas exige
   // cash.open: al vendedor le queda avisarle a un encargado.
@@ -65,6 +67,7 @@ export function OpenRegisterScreen({ onOpened }: { onOpened?: (registerId: numbe
   };
 
   const montoValido = (() => {
+    if (openingAmount.trim() === "") return false;
     const monto = Number(openingAmount.replace(",", "."));
     return Number.isFinite(monto) && monto >= 0;
   })();
@@ -134,7 +137,10 @@ export function OpenRegisterScreen({ onOpened }: { onOpened?: (registerId: numbe
             required
             value={openingAmount}
             onChange={(event) => setOpeningAmount(event.target.value)}
-            error={!montoValido ? "Ingresá un monto válido" : undefined}
+            placeholder="0,00"
+            error={
+              openingAmount !== "" && !montoValido ? "Ingresá un monto válido" : undefined
+            }
             hint="Lo que hay en el cajón al arrancar el turno."
             className="max-w-xs"
           />

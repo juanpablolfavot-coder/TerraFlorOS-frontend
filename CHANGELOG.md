@@ -1,5 +1,23 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.4.1] — El input de monto ya no pierde el foco
+
+### Corregido
+
+- **El campo «Efectivo contado» del arqueo perdía el foco con cada tecla**,
+  así que había que volver a hacer clic para escribir cada dígito. No era un
+  remontaje: el `useEffect` de `Modal` dependía de `[open, onClose]`, y
+  `onClose` se redefine en cada render del que lo usa, así que el efecto se
+  re-ejecutaba con cada tecla y su `panelRef.focus()` le robaba el foco al
+  input. Ahora `onClose` vive en un ref y el efecto solo depende de `open`
+- El foco inicial del modal, además, ya no pisa a un campo con `autoFocus`:
+  solo entra al panel si el foco no está adentro
+- Afectaba a cualquier formulario dentro de un `Modal`, no solo al arqueo
+- **El monto de apertura de caja arrancaba en `"0"`**, así que tipear un
+  importe lo anteponía (`12345` quedaba `012345`). Ahora arranca vacío con
+  `0,00` de placeholder
+- El formulario de movimientos no estaba afectado: no vive dentro de un modal
+
 ## [0.4.0] — Gestión de caja: movimientos y cierre con arqueo
 
 - **Movimientos manuales** (requiere `cash.movement`, oculto con `<Can>`):

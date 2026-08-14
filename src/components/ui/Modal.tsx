@@ -25,19 +25,38 @@ export function Modal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * `onClose` suele ser una función nueva en cada render del que llama.
+   * Si el efecto dependiera de ella se re-ejecutaría con cada tecla, y
+   * el `focus()` de abajo le robaría el foco al input que se está
+   * tipeando. Guardándola en un ref, el efecto solo depende de `open`.
+   */
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Escape: se suscribe una sola vez por apertura
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKeyDown);
 
-    // El foco entra al panel para no seguir tecleando en la pantalla de atrás
-    panelRef.current?.focus();
-
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  }, [open]);
+
+  // Foco: SOLO al abrirse, y sin pisar al que ya tenga el foco adentro
+  // (por ejemplo un campo con autoFocus).
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    if (panel !== null && !panel.contains(document.activeElement)) {
+      panel.focus();
+    }
+  }, [open]);
 
   if (!open) return null;
 
