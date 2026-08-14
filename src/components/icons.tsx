@@ -1,0 +1,106 @@
+import type { SVGProps } from "react";
+
+/**
+ * Iconos propios, trazo simple 24×24. Sin librería: son pocos y así no
+ * arrastramos un paquete entero para diez formas.
+ */
+type IconProps = SVGProps<SVGSVGElement>;
+
+function Icon({ children, ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="size-5 shrink-0"
+      {...props}
+    >
+      {children}
+    </svg>
+  );
+}
+
+export const IconDashboard = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="3" width="7" height="9" rx="1.5" />
+    <rect x="14" y="3" width="7" height="5" rx="1.5" />
+    <rect x="14" y="12" width="7" height="9" rx="1.5" />
+    <rect x="3" y="16" width="7" height="5" rx="1.5" />
+  </Icon>
+);
+
+export const IconSales = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.5L21 8H6" />
+    <circle cx="10" cy="20" r="1.2" />
+    <circle cx="18" cy="20" r="1.2" />
+  </Icon>
+);
+
+export const IconLeaf = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M5 20c0-8 5-13 15-14 0 10-5 14-11 14H5Z" />
+    <path d="M9 16c1.5-3.5 3.8-6 7-7.5" />
+  </Icon>
+);
+
+export const IconBoxes = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z" />
+    <path d="m4 7 8 4 8-4M12 11v10" />
+  </Icon>
+);
+
+export const IconTruck = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z" />
+    <circle cx="7" cy="18" r="1.6" />
+    <circle cx="17" cy="18" r="1.6" />
+  </Icon>
+);
+
+export const IconUsers = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" />
+    <path d="M16 11.2A3.2 3.2 0 0 0 16 5M18 19.5c0-2-.6-3.6-1.8-4.7" />
+  </Icon>
+);
+
+export const IconCash = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="2.5" y="6" width="19" height="12" rx="2" />
+    <circle cx="12" cy="12" r="2.6" />
+    <path d="M6 12h.01M18 12h.01" />
+  </Icon>
+);
+
+export const IconBuilding = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 21V6l7-3v18M11 21h9V10h-9" />
+    <path d="M14.5 13.5h2M14.5 17h2M7 8.5h1M7 12h1M7 15.5h1" />
+  </Icon>
+);
+
+export const IconLogout = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+    <path d="M10 16 6 12l4-4M6 12h10" />
+  </Icon>
+);
+
+export const IconMenu = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Icon>
+);
+
+export const IconClose = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="m6 6 12 12M18 6 6 18" />
+  </Icon>
+);
