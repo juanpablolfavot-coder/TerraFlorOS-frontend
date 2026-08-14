@@ -1,5 +1,32 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.7.0] — Proveedores como pantalla propia
+
+- **Padrón de proveedores** con búsqueda por razón social, nombre comercial
+  o CUIT, y filtro por activo/inactivo. Las filas abren la ficha
+- **Alta y edición** con todos los campos del modelo: razón social, nombre
+  comercial, CUIT, contacto, teléfono, WhatsApp, email, dirección, días de
+  entrega, mínimo de compra, condiciones de pago, notas y estado.
+  Validación con Zod espejando la del backend, con errores por campo
+- **Ficha del proveedor** con sus datos, su catálogo y las compras que se le
+  hicieron. Las órdenes en borrador son los presupuestos todavía sin
+  confirmar, y cada una muestra su estado con el color del módulo de compras
+- **Catálogo del proveedor** (`supplier_products`, que el backend sí
+  expone): cómo llama y presenta cada producto, con la equivalencia en
+  unidades base y cuál es el preferido. El último costo aparece solo con
+  `products.view_cost`
+- **Baja lógica** con confirmación. Si el proveedor tiene compras sin
+  finalizar, el 409 se traduce a cuántas son y qué hacer con ellas
+
+### Cambios internos
+
+- El hook de proveedores para los selectores vive ahora en el módulo de
+  proveedores; compras lo reexporta con el nombre que ya usaba, así hay una
+  sola implementación y el formulario de compra sigue igual
+- El formulario de proveedor usa `noValidate`: con `type="email"` el
+  navegador cortaba el envío con su propio aviso y el mensaje en castellano
+  del formulario nunca llegaba a mostrarse
+
 ## [0.6.0] — Compras, recepción con generación de lotes y productos a reponer
 
 - **Lista de compras** con filtros por estado, proveedor y rango de fechas.

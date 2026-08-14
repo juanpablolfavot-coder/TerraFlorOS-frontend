@@ -11,7 +11,6 @@ import type {
   PurchasesDashboard,
   PurchasesQuery,
   Receipt,
-  SupplierRef,
   TransitionConflict,
   UpdatePurchaseBody,
 } from "./types";
@@ -123,19 +122,12 @@ export function useRestockList() {
   });
 }
 
-/** Proveedores para el selector. El backend pide `products.view` para leerlos. */
-export function useSuppliers(search?: string) {
-  return useQuery({
-    queryKey: ["suppliers", "list", search ?? ""],
-    queryFn: async () => {
-      const { data } = await api.get<Paginated<SupplierRef>>("/api/suppliers", {
-        params: { pageSize: 100, isActive: true, ...(search ? { search } : {}) },
-      });
-      return data.items;
-    },
-    staleTime: 5 * 60_000,
-  });
-}
+/**
+ * Proveedores para el selector. La implementación vive en el módulo de
+ * proveedores; acá se reexporta con el nombre que ya usaban las pantallas
+ * de compras, para no tener dos consultas equivalentes.
+ */
+export { useSupplierOptions as useSuppliers } from "@/features/suppliers/api";
 
 // ---------------------------------------------------------------
 // Lectura de los 409 que devuelve el módulo

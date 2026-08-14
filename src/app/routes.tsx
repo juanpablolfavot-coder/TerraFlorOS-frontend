@@ -8,6 +8,8 @@ import { ProductsPage } from "@/features/products/ProductsPage";
 import { PurchaseDetailPage } from "@/features/purchases/PurchaseDetailPage";
 import { PurchasesPage } from "@/features/purchases/PurchasesPage";
 import { RestockPage } from "@/features/purchases/RestockPage";
+import { SupplierDetailPage } from "@/features/suppliers/SupplierDetailPage";
+import { SuppliersPage } from "@/features/suppliers/SuppliersPage";
 import { PosPage } from "@/features/sales/PosPage";
 import { PERMISSIONS, RequireAuth, RequirePermission } from "@/features/auth";
 import { ForbiddenPage, NotFoundPage } from "@/pages/ErrorPages";
@@ -93,21 +95,10 @@ export function AppRoutes() {
             <Route path="reposicion" element={<RestockPage />} />
           </Route>
 
+          {/* Leer proveedores requiere products.view, igual que el backend */}
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>
-            <Route
-              path="proveedores"
-              element={
-                <PlaceholderPage
-                  title="Proveedores"
-                  description="Padrón de proveedores y productos que provee cada uno."
-                  next={[
-                    "Listado y ficha de proveedor (GET /api/suppliers)",
-                    "Alta y edición para quien tenga suppliers.manage",
-                    "Productos por proveedor con código y costo (GET /api/suppliers/:id/products)",
-                  ]}
-                />
-              }
-            />
+            <Route path="proveedores" element={<SuppliersPage />} />
+            <Route path="proveedores/:id" element={<SupplierDetailPage />} />
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE} />}>

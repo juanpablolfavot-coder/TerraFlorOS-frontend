@@ -73,6 +73,7 @@ src/
     products/            Catálogo: lista, ficha, precios y códigos
     purchases/           Compras, recepción y productos a reponer
     sales/               POS: buscador, carrito y cobro
+    suppliers/           Proveedores y su catálogo
   lib/
     api.ts               Instancia de Axios + refresh de sesión
     session.ts           Access token en memoria
@@ -175,9 +176,11 @@ Implementado:
   categorías
 - **Compras**: órdenes con sus estados, recepción de mercadería que genera
   lotes, y la lista de productos bajo stock mínimo
+- **Proveedores**: padrón con búsqueda, ficha completa, catálogo del
+  proveedor y las compras hechas a cada uno
 
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
-Inventario, Proveedores y Usuarios.
+Inventario y Usuarios.
 
 ---
 
