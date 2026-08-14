@@ -114,26 +114,5 @@ export const barcodeSchema = z
   .min(3, "Código demasiado corto")
   .max(64, "Máximo 64 caracteres");
 
-/** `{ campo: mensaje }` a partir de un error de Zod. */
-export function erroresPorCampo(error: z.ZodError): Record<string, string> {
-  const salida: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const campo = issue.path.join(".");
-    salida[campo] ??= issue.message;
-  }
-  return salida;
-}
-
-/** Texto del formulario → lo que espera la API (`null` si está vacío). */
-export function textoAApi(valor: string | undefined): string | null {
-  const limpio = (valor ?? "").trim();
-  return limpio === "" ? null : limpio;
-}
-
-/** Número del formulario → number o `null`. Acepta coma decimal. */
-export function numeroAApi(valor: string | undefined): number | null {
-  const limpio = (valor ?? "").trim();
-  if (limpio === "") return null;
-  const n = Number(limpio.replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
+/** Conversores y errores por campo, comunes a todos los formularios. */
+export { erroresPorCampo, numeroAApi, textoAApi } from "@/lib/forms";

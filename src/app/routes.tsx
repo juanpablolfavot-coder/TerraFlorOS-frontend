@@ -2,6 +2,8 @@ import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CashPage } from "@/features/cash/CashPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
+import { CustomerDetailPage } from "@/features/customers/CustomerDetailPage";
+import { CustomersPage } from "@/features/customers/CustomersPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { ProductDetailPage } from "@/features/products/ProductDetailPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
@@ -93,6 +95,21 @@ export function AppRoutes() {
             {/* "nueva" y :id comparten pantalla, igual que en productos */}
             <Route path="compras/:id" element={<PurchaseDetailPage />} />
             <Route path="reposicion" element={<RestockPage />} />
+          </Route>
+
+          <Route
+            element={
+              // Leer clientes acepta sales.create o customers.manage (así lo
+              // resuelve el backend); las acciones de escritura se ocultan
+              // con <Can customers.manage>.
+              <RequirePermission
+                anyOf={[PERMISSIONS.SALES_CREATE, PERMISSIONS.CUSTOMERS_MANAGE]}
+              />
+            }
+          >
+            <Route path="clientes" element={<CustomersPage />} />
+            {/* "nuevo" y :id comparten pantalla, igual que en productos */}
+            <Route path="clientes/:id" element={<CustomerDetailPage />} />
           </Route>
 
           {/* Leer proveedores requiere products.view, igual que el backend */}

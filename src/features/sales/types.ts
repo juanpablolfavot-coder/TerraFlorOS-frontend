@@ -83,6 +83,8 @@ export interface CreateSaleBody {
 export interface SaleCreated {
   id: number;
   number: string;
+  /** El cliente elegido, si la venta se asoció a uno. */
+  customer: { id: number; name: string; segment: string } | null;
   total: Decimal;
   subtotal: Decimal;
   discount: Decimal;
@@ -100,6 +102,40 @@ export interface SaleCreated {
     amount: Decimal;
     paymentMethod: { id: number; name: string; affectsCash: boolean };
   }>;
+}
+
+/**
+ * Fila de `GET /api/sales`. `costTotal` y `margin` solo llegan con
+ * `products.view_cost`, igual que en el resto del sistema.
+ */
+export interface SaleListItem {
+  id: number;
+  number: string;
+  branchId: number;
+  customerId: number | null;
+  priceListId: number | null;
+  status: "COMPLETED" | "VOIDED";
+  subtotal: Decimal;
+  discount: Decimal;
+  total: Decimal;
+  costTotal?: Decimal;
+  margin?: number;
+  voidedAt: string | null;
+  createdAt: string;
+  seller: { id: number; username: string };
+  customer: { id: number; name: string } | null;
+  branch: { id: number; name: string };
+  _count: { items: number };
+}
+
+export interface SalesQuery {
+  page?: number;
+  pageSize?: number;
+  customerId?: number;
+  sellerId?: number;
+  branchId?: number;
+  status?: "COMPLETED" | "VOIDED";
+  number?: string;
 }
 
 /** Detalle del 409 por falta de stock. */

@@ -71,6 +71,16 @@ export const IconUsers = (props: IconProps) => (
   </Icon>
 );
 
+/** Clientes: una sola persona en su ficha, distinta de IconUsers. */
+export const IconContact = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="4" width="18" height="16" rx="2.5" />
+    <circle cx="9.5" cy="10.5" r="2.2" />
+    <path d="M6 17c0-1.9 1.6-3 3.5-3s3.5 1.1 3.5 3" />
+    <path d="M15.5 9.5h3M15.5 13h3" />
+  </Icon>
+);
+
 export const IconCash = (props: IconProps) => (
   <Icon {...props}>
     <rect x="2.5" y="6" width="19" height="12" rx="2" />

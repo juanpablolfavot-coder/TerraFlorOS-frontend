@@ -3,13 +3,38 @@ import { api, isApiError } from "@/lib/api";
 import { cashKeys } from "@/features/cash/api";
 import { queryClient } from "@/lib/queryClient";
 import type { Paginated, ProductListItem } from "@/features/products/types";
-import type { CreateSaleBody, PaymentMethod, PriceList, ProductDetail, SaleCreated } from "./types";
+import type {
+  CreateSaleBody,
+  PaymentMethod,
+  PriceList,
+  ProductDetail,
+  SaleCreated,
+  SaleListItem,
+  SalesQuery,
+} from "./types";
 
 export const salesKeys = {
   paymentMethods: ["payment-methods"] as const,
   priceLists: ["price-lists"] as const,
   productSearch: (term: string) => ["pos", "product-search", term] as const,
+  list: (query: SalesQuery) => ["sales", "list", query] as const,
 };
+
+/**
+ * Ventas ya registradas. Leerlas exige `sales.create`, igual que crearlas
+ * (así lo resuelve el backend). Se usa, entre otros, para las compras de
+ * un cliente (`?customerId=`).
+ */
+export function useSales(query: SalesQuery) {
+  return useQuery({
+    queryKey: salesKeys.list(query),
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<SaleListItem>>("/api/sales", { params: query });
+      return data;
+    },
+    placeholderData: keepPreviousData,
+  });
+}
 
 /** Catálogos que casi no cambian: no hace falta refrescarlos seguido. */
 const CATALOG_STALE_TIME = 5 * 60_000;
@@ -29,8 +54,12 @@ export function usePaymentMethods() {
 /**
  * Listas de precios activas, con la default primera. El POS toma esa
  * primera como precio base en vez de deducirla de los productos.
+ *
+ * Leerlas exige `products.view` (no `sales.create`): por eso se puede
+ * desactivar, para no disparar un 403 evitable desde pantallas que las
+ * usan solo como dato accesorio.
  */
-export function usePriceLists() {
+export function usePriceLists(enabled = true) {
   return useQuery({
     queryKey: salesKeys.priceLists,
     queryFn: async () => {
@@ -38,6 +67,7 @@ export function usePriceLists() {
       return data;
     },
     staleTime: CATALOG_STALE_TIME,
+    enabled,
   });
 }
 

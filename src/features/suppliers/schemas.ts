@@ -53,23 +53,5 @@ export const supplierProductSchema = z.object({
   ),
 });
 
-export function erroresPorCampo(error: z.ZodError): Record<string, string> {
-  const salida: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const campo = issue.path.join(".");
-    salida[campo] ??= issue.message;
-  }
-  return salida;
-}
-
-export const textoAApi = (valor: string): string | null => {
-  const limpio = valor.trim();
-  return limpio === "" ? null : limpio;
-};
-
-export const numeroAApi = (valor: string): number | null => {
-  const limpio = valor.trim();
-  if (limpio === "") return null;
-  const n = Number(limpio.replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-};
+/** Conversores y errores por campo, comunes a todos los formularios. */
+export { erroresPorCampo, numeroAApi, textoAApi } from "@/lib/forms";

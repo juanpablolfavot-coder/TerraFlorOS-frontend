@@ -69,6 +69,7 @@ src/
     auth/                Contexto de sesión, permisos y guards
     cash/                Caja: apertura, movimientos y cierre
     categories/          Árbol de categorías
+    customers/           Clientes, direcciones y cuenta corriente
     dashboard/           Panel del día
     products/            Catálogo: lista, ficha, precios y códigos
     purchases/           Compras, recepción y productos a reponer
@@ -168,7 +169,8 @@ Implementado:
 - **Panel**: ventas del día, medios de pago, plantas e inventario
 - **Productos**: listado con búsqueda, filtros por tipo/categoría/estado,
   precio y stock disponible por fila, y paginación
-- **Ventas (POS)**: buscador que escanea y busca, carrito, pago mixto y cobro
+- **Ventas (POS)**: buscador que escanea y busca, carrito, cliente opcional,
+  pago mixto y cobro
 - **Caja**: apertura, resumen del turno en vivo, detalle completo de
   movimientos (manuales y automáticos) y cierre con arqueo
 - **Catálogo**: lista con filtros, alta y edición de productos con ficha
@@ -178,6 +180,9 @@ Implementado:
   lotes, y la lista de productos bajo stock mínimo
 - **Proveedores**: padrón con búsqueda, ficha completa, catálogo del
   proveedor y las compras hechas a cada uno
+- **Clientes**: padrón con búsqueda y filtros, ficha con direcciones,
+  cuenta corriente (solo lectura) y sus compras, más el selector de cliente
+  del POS
 
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
 Inventario y Usuarios.
@@ -198,8 +203,23 @@ Detalles del contrato que conviene tener presentes:
   primera. El POS toma esa como precio base y, si hay más de una, deja
   elegir; al cambiarla recalcula todo el carrito
 - **`GET /api/payment-methods`** devuelve los métodos activos para cobrar
-- **Todavía no hay endpoint de clientes**, así que la venta va sin cliente.
-  El backend acepta `customerId` opcional, listo para cuando exista
+- **Leer clientes acepta `sales.create` o `customers.manage`** (mismo criterio
+  que la caja): el POS necesita buscar y elegir cliente al facturar. Crear,
+  editar, borrar y tocar direcciones exige `customers.manage`
+- **El cliente de la venta es opcional**, pero si viaja `customerId` el
+  backend factura con la lista de precios asignada a ese cliente. Por eso el
+  POS cambia de lista al elegirlo: mandar precios de otra lista haría que su
+  validación de «vender por debajo de lista» rechace la venta
+- **La cuenta corriente es solo lectura.** `GET /api/customers/:id/account`
+  devuelve saldo y movimientos, pero todavía no hay forma de crear asientos:
+  no existe la venta a crédito ni el registro de pagos
+- **La invariante de direcciones la resuelve el backend:** si el cliente
+  tiene direcciones, hay exactamente una principal. La primera queda
+  principal aunque no se pida, marcar una nueva desmarca la anterior y al
+  borrar la principal se promueve la más antigua de las que quedan
+- **`GET /api/price-lists` exige `products.view`**, no `sales.create`: en el
+  formulario de cliente ese campo se muestra de solo lectura para quien no
+  tenga ese permiso
 - **`GET /api/cash/sessions/:id/movements`** devuelve el detalle completo del
   turno: los manuales y los automáticos (`SALE_CASH` de cada venta en
   efectivo), de cualquier usuario, en orden cronológico y sin paginar. Cada

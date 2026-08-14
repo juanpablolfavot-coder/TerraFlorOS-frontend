@@ -14,6 +14,8 @@ import {
 import { PERMISSIONS, useAuth } from "@/features/auth";
 import { useRegisters } from "@/features/cash/api";
 import { OpenRegisterScreen } from "@/features/cash/OpenRegisterScreen";
+import { CustomerPicker } from "@/features/customers/CustomerPicker";
+import type { CustomerListItem } from "@/features/customers/types";
 import { getApiErrorMessage, isApiError } from "@/lib/api";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { useDocumentTitle } from "@/lib/hooks";
@@ -79,6 +81,7 @@ export function PosPage() {
 
   const priceLists = usePriceLists();
   const cart = usePosCart(priceLists.data ?? []);
+  const [cliente, setCliente] = useState<CustomerListItem | null>(null);
   const [payments, setPayments] = useState<PaymentLine[]>([nuevoPago()]);
   const [confirmarVaciar, setConfirmarVaciar] = useState(false);
   const [ventaHecha, setVentaHecha] = useState<SaleCreated | null>(null);
@@ -101,8 +104,42 @@ export function PosPage() {
     Math.abs(restante) < 0.005 &&
     !createSale.isPending;
 
+  // ---------------------------------------------------------------
+  // Cliente (opcional) y su lista de precios
+  // ---------------------------------------------------------------
+
+  const listaPorDefecto = useMemo(() => {
+    const listas = priceLists.data ?? [];
+    return listas.find((lista) => lista.isDefault) ?? listas[0] ?? null;
+  }, [priceLists.data]);
+
+  /**
+   * Lista ACTIVA del cliente. Se busca entre las que devuelve el backend
+   * porque él hace lo mismo: si la lista asignada no está activa, cae a la
+   * default. Mandar precios de otra lista haría que su validación de
+   * "vender bajo precio de lista" rechace la venta.
+   */
+  const listaDelCliente = useMemo(() => {
+    if (cliente?.priceListId == null) return null;
+    return (priceLists.data ?? []).find((lista) => lista.id === cliente.priceListId) ?? null;
+  }, [cliente, priceLists.data]);
+
+  const elegirCliente = (nuevo: CustomerListItem | null) => {
+    setCliente(nuevo);
+
+    const suya =
+      nuevo?.priceListId == null
+        ? undefined
+        : (priceLists.data ?? []).find((lista) => lista.id === nuevo.priceListId);
+    const lista = suya ?? listaPorDefecto;
+    if (lista !== null && lista !== undefined && lista.id !== cart.priceListId) {
+      cart.changePriceList(lista.id);
+    }
+  };
+
   const reiniciarVenta = () => {
     cart.clear();
+    elegirCliente(null);
     setPayments([nuevoPago()]);
     setErrorVenta(null);
     enfocarBuscador();
@@ -115,6 +152,8 @@ export function PosPage() {
     createSale.mutate(
       {
         registerId,
+        // La venta puede ir sin cliente: solo viaja si se eligió uno
+        ...(cliente !== null ? { customerId: cliente.id } : {}),
         // Se manda SIEMPRE el unitPrice para que el total del backend sea
         // idéntico al que se mostró: la validación "pagos == total" es
         // exacta y un centavo de diferencia rechaza la venta.
@@ -253,7 +292,7 @@ export function PosPage() {
           </Card>
 
           {(priceLists.data?.length ?? 0) > 1 && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <label htmlFor="lista-precios" className="text-sm text-stone-600">
                 Lista de precios
               </label>
@@ -261,6 +300,7 @@ export function PosPage() {
                 <Select
                   id="lista-precios"
                   value={cart.priceListId ?? ""}
+                  disabled={listaDelCliente !== null}
                   onChange={(event) => cart.changePriceList(Number(event.target.value))}
                 >
                   {(priceLists.data ?? []).map((lista) => (
@@ -271,6 +311,11 @@ export function PosPage() {
                   ))}
                 </Select>
               </div>
+              {listaDelCliente !== null && (
+                <p className="text-sm text-stone-500">
+                  La fija el cliente: el backend factura con su lista asignada.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -278,7 +323,16 @@ export function PosPage() {
         {/* Zona de cobro */}
         <div className="xl:sticky xl:top-28 xl:self-start">
           <Card className="space-y-6">
-            <div className="space-y-1">
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-stone-500">Cliente (opcional)</p>
+              <CustomerPicker
+                cliente={cliente}
+                onChange={elegirCliente}
+                listaAsignada={listaDelCliente?.name ?? null}
+              />
+            </div>
+
+            <div className="space-y-1 border-t border-stone-100 pt-6">
               <p className="text-sm font-medium text-stone-500">Total</p>
               <p className="tabular text-4xl font-semibold tracking-tight text-stone-900">
                 {formatMoney(cart.totals.total)}
@@ -340,7 +394,7 @@ export function PosPage() {
       <ConfirmDialog
         open={confirmarVaciar}
         title="¿Vaciar el carrito?"
-        description="Se van a quitar todos los productos cargados y los pagos de esta venta."
+        description="Se van a quitar los productos cargados, los pagos y el cliente de esta venta."
         confirmLabel="Vaciar"
         onCancel={() => setConfirmarVaciar(false)}
         onConfirm={() => {
@@ -372,6 +426,11 @@ export function PosPage() {
         <p className="tabular text-3xl font-semibold text-brand-700">
           {formatMoney(ventaHecha?.total)}
         </p>
+        {ventaHecha?.customer != null && (
+          <p className="mt-2 text-sm text-stone-700">
+            Cliente: <span className="font-medium">{ventaHecha.customer.name}</span>
+          </p>
+        )}
         <p className="mt-2 text-sm text-stone-500">
           El carrito quedó vacío y el foco vuelve al buscador.
         </p>

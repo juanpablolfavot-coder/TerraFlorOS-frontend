@@ -1,5 +1,48 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.9.0] — Clientes y selector de cliente en el POS
+
+- **Padrón de clientes** con búsqueda por nombre, teléfono, email o CUIT, y
+  filtros por segmento y estado. Las filas abren la ficha
+- **Alta y edición** con los campos del modelo: nombre, teléfono, WhatsApp,
+  email, CUIT, segmento, lista de precios asignada, límite de crédito, notas
+  y estado. Validación con Zod espejando la del backend, errores por campo y
+  `noValidate` para que el aviso del navegador no tape el mensaje propio
+- **Ficha del cliente** con sus datos, direcciones, cuenta corriente y las
+  ventas que se le hicieron
+- **Direcciones**: alta y baja con barrio, localidad y referencia. La
+  invariante «una sola principal» la resuelve el backend, así que la pantalla
+  solo la explica: la primera queda principal aunque no se marque, y marcar
+  una nueva desmarca la anterior
+- **Cuenta corriente de solo lectura**: saldo (positivo = deuda), límite de
+  crédito y los movimientos paginados. No hay botones de «registrar pago» ni
+  «vender a crédito» porque esa funcionalidad todavía no existe en el
+  backend; sin movimientos muestra saldo $ 0,00 y lo dice explícitamente
+- **Baja lógica** con confirmación: el cliente deja de aparecer en el padrón
+  y en el POS, y el historial de ventas se conserva
+
+### En el POS
+
+- **Selector de cliente** con typeahead sobre `/api/customers?search=`. Es
+  opcional: se puede seguir vendiendo sin cliente, igual que antes. El
+  elegido se muestra con su segmento y se puede quitar
+- **Si el cliente tiene lista de precios asignada, el POS pasa a esa lista** y
+  recalcula el carrito. El selector de lista queda fijo mientras ese cliente
+  esté elegido, porque el backend factura con la suya: mandar precios de otra
+  lista haría que rechace la venta por «vender por debajo del precio de lista»
+- El comprobante de la venta muestra a quién se le facturó, y al empezar una
+  venta nueva el cliente se limpia junto con el carrito
+
+### Cambios internos
+
+- `erroresPorCampo`, `textoAApi` y `numeroAApi` viven en `lib/forms.ts`:
+  estaban duplicados en productos y proveedores, que ahora los reexportan
+- `usePriceLists` acepta desactivarse: leer las listas exige `products.view`,
+  así que el formulario de cliente no dispara un 403 evitable y muestra ese
+  campo de solo lectura
+- Nuevo hook `useSales` para listar ventas (`GET /api/sales`), que usa la
+  ficha del cliente filtrando por `customerId`
+
 ## [0.8.0] — Precio y stock en la grilla + movimientos reales de caja
 
 - **Grilla de productos con precio y stock.** El listado ahora devuelve

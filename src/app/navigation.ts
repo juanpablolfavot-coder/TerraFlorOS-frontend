@@ -3,6 +3,7 @@ import {
   IconBoxes,
   IconBuilding,
   IconCash,
+  IconContact,
   IconDashboard,
   IconLeaf,
   IconSales,
@@ -65,6 +66,14 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/compras",
     icon: IconTruck,
     anyOf: [PERMISSIONS.PURCHASES_MANAGE, PERMISSIONS.PURCHASES_RECEIVE],
+  },
+  {
+    label: "Clientes",
+    to: "/clientes",
+    icon: IconContact,
+    // Igual que el backend: leer clientes alcanza con sales.create, porque
+    // el POS necesita elegir cliente al facturar
+    anyOf: [PERMISSIONS.SALES_CREATE, PERMISSIONS.CUSTOMERS_MANAGE],
   },
   {
     label: "Proveedores",
