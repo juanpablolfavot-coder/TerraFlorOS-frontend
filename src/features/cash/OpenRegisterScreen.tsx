@@ -21,8 +21,8 @@ export function OpenRegisterScreen({ onOpened }: { onOpened?: (registerId: numbe
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [openingAmount, setOpeningAmount] = useState("0");
 
-  // Sin cash.open ni siquiera se pueden listar las cajas (el backend pide
-  // ese permiso para GET /registers), así que no hay nada que ofrecer.
+  // Las cajas se pueden leer con sales.create, pero abrirlas exige
+  // cash.open: al vendedor le queda avisarle a un encargado.
   if (!puedeAbrir) {
     return (
       <Card className="space-y-4">
@@ -59,7 +59,7 @@ export function OpenRegisterScreen({ onOpened }: { onOpened?: (registerId: numbe
     if (!Number.isFinite(monto) || monto < 0) return;
 
     openSession.mutate(
-      { cashRegisterId: seleccionada.id, openingAmount: monto },
+      { registerId: seleccionada.id, openingAmount: monto },
       { onSuccess: () => onOpened?.(seleccionada.id) }
     );
   };

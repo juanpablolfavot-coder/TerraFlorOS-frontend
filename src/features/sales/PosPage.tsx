@@ -17,7 +17,7 @@ import { OpenRegisterScreen } from "@/features/cash/OpenRegisterScreen";
 import { getApiErrorMessage, isApiError } from "@/lib/api";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { useDocumentTitle } from "@/lib/hooks";
-import { useCreateSale, usePaymentMethods } from "./api";
+import { useCreateSale, usePaymentMethods, usePriceLists } from "./api";
 import { CartList } from "./CartList";
 import { PaymentPanel } from "./PaymentPanel";
 import { ProductSearchBar } from "./ProductSearchBar";
@@ -51,7 +51,9 @@ export function PosPage() {
   useDocumentTitle("Ventas");
 
   const { can } = useAuth();
-  const puedeVerCajas = can(PERMISSIONS.CASH_OPEN);
+  // El backend permite LEER cajas con sales.create o cash.open; abrirlas
+  // sigue exigiendo cash.open.
+  const puedeVerCajas = can(PERMISSIONS.SALES_CREATE) || can(PERMISSIONS.CASH_OPEN);
   const puedeEditarPrecio = can(PERMISSIONS.SALES_DISCOUNT);
 
   // ---------------------------------------------------------------
@@ -75,7 +77,8 @@ export function PosPage() {
   // Carrito y pagos
   // ---------------------------------------------------------------
 
-  const cart = usePosCart();
+  const priceLists = usePriceLists();
+  const cart = usePosCart(priceLists.data ?? []);
   const [payments, setPayments] = useState<PaymentLine[]>([nuevoPago()]);
   const [confirmarVaciar, setConfirmarVaciar] = useState(false);
   const [ventaHecha, setVentaHecha] = useState<SaleCreated | null>(null);
@@ -161,19 +164,6 @@ export function PosPage() {
   // Estados previos al POS
   // ---------------------------------------------------------------
 
-  if (!puedeVerCajas) {
-    return (
-      <div className="space-y-8">
-        <PageHeader title="Ventas" />
-        <Alert tone="warning" title="Pedí a un encargado que abra la caja">
-          Para vender hace falta una caja abierta, y tu usuario no tiene el permiso{" "}
-          <code className="font-mono">cash.open</code>, que el backend también exige para consultar
-          el estado de las cajas.
-        </Alert>
-      </div>
-    );
-  }
-
   if (registers.isPending) return <LoadingBlock label="Buscando la caja…" />;
 
   if (registers.error !== null) {
@@ -201,11 +191,7 @@ export function PosPage() {
 
   const cajaActual = cajasAbiertas.find((caja) => caja.id === registerId) ?? cajasAbiertas[0]!;
   const errorMetodos =
-    methods.error !== null
-      ? isApiError(methods.error) && methods.error.response?.status === 404
-        ? "El backend todavía no expone GET /api/payment-methods, así que no hay catálogo de métodos para cobrar."
-        : getApiErrorMessage(methods.error)
-      : null;
+    methods.error !== null ? getApiErrorMessage(methods.error) : null;
 
   return (
     <div className="space-y-8">
@@ -266,7 +252,7 @@ export function PosPage() {
             />
           </Card>
 
-          {cart.knownPriceLists.length > 1 && (
+          {(priceLists.data?.length ?? 0) > 1 && (
             <div className="flex items-center gap-3">
               <label htmlFor="lista-precios" className="text-sm text-stone-600">
                 Lista de precios
@@ -277,9 +263,10 @@ export function PosPage() {
                   value={cart.priceListId ?? ""}
                   onChange={(event) => cart.changePriceList(Number(event.target.value))}
                 >
-                  {cart.knownPriceLists.map((lista) => (
+                  {(priceLists.data ?? []).map((lista) => (
                     <option key={lista.id} value={lista.id}>
                       {lista.name}
+                      {lista.isDefault ? " (por defecto)" : ""}
                     </option>
                   ))}
                 </Select>

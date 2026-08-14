@@ -1,12 +1,21 @@
 import type { Decimal } from "@/lib/format";
 import type { ProductListItem } from "@/features/products/types";
 
-/** GET /api/payment-methods (ver nota en api.ts: hoy el backend no lo expone). */
+/** GET /api/payment-methods — solo los activos, ordenados por id. */
 export interface PaymentMethod {
   id: number;
   name: string;
   affectsCash: boolean;
-  isActive?: boolean;
+}
+
+/**
+ * GET /api/price-lists — solo las activas, con la default PRIMERA
+ * (el backend ordena por isDefault desc y después por nombre).
+ */
+export interface PriceList {
+  id: number;
+  name: string;
+  isDefault: boolean;
 }
 
 export interface PriceListRef {

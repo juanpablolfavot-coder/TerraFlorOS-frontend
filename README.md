@@ -174,22 +174,22 @@ manuales de caja y el cierre con arqueo.
 
 ---
 
-## Endpoints que le faltan al backend
+## Contrato con el backend
 
-El POS está completo del lado del frontend, pero **no puede cobrar** hasta
-que existan estos endpoints:
+Detalles del contrato que conviene tener presentes:
 
-| Endpoint | Para qué | Qué hace el frontend mientras tanto |
-| --- | --- | --- |
-| `GET /api/payment-methods` | Catálogo de medios de pago | Explica que falta y deja el cobro deshabilitado. No se cablean ids fijos: cobrar con el método equivocado sería un error silencioso en los datos |
-| `GET /api/price-lists` | Saber cuál es la lista por defecto (`isDefault`) | Deduce las listas de los precios de los productos y, si hay más de una, deja elegir |
-| `GET /api/customers` | Cliente opcional de la venta | Vende sin cliente; `customerId` ya está contemplado |
-
-Dos detalles del contrato actual que conviene tener presentes:
-
-- `POST /api/cash/sessions` espera **`cashRegisterId`**, mientras que
-  `/api/cash/sessions/current` y `POST /api/sales` usan `registerId`. El
-  schema es `.strict()`, así que el nombre equivocado devuelve 400
-- `GET /api/cash/registers` y `/sessions/current` exigen `cash.open`, de modo
-  que un vendedor con solo `sales.create` no puede ni consultar si hay una
-  caja abierta
+- **Naming de caja:** todos los endpoints usan `registerId`, incluido
+  `POST /api/cash/sessions`. Su schema es `.strict()`, así que un nombre
+  distinto devuelve 400
+- **Lecturas de caja** (`GET /api/cash/registers` y `/sessions/current`)
+  aceptan `sales.create` **o** `cash.open`: un vendedor puede consultar si
+  hay caja abierta y facturar. Abrirla sigue exigiendo `cash.open`
+- **`GET /api/price-lists`** devuelve las listas activas con la default
+  primera. El POS toma esa como precio base y, si hay más de una, deja
+  elegir; al cambiarla recalcula todo el carrito
+- **`GET /api/payment-methods`** devuelve los métodos activos para cobrar
+- **Todavía no hay endpoint de clientes**, así que la venta va sin cliente.
+  El backend acepta `customerId` opcional, listo para cuando exista
+- El POS manda siempre el `unitPrice` de cada línea para que su total sea
+  idéntico al que calcula el backend: la validación «pagos == total» es
+  exacta y un centavo de diferencia rechaza la venta

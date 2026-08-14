@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toNumber } from "@/lib/format";
-import type { CartLine, PriceListRef, ProductDetail, ProductPrice } from "./types";
+import type { CartLine, PriceList, ProductDetail, ProductPrice } from "./types";
 
 /** Mismo redondeo que el backend, para que los totales cierren al centavo. */
 const round2 = (value: number) => Math.round(value * 100) / 100;
@@ -21,10 +21,22 @@ function resolvePrice(
   return { unitPrice: price, listPrice: enLista !== undefined ? price : null };
 }
 
-export function usePosCart() {
+/**
+ * Estado del carrito del POS.
+ *
+ * `priceLists` viene de GET /api/price-lists con la default primera, así
+ * que el precio base sale del backend y no de adivinar cuál usar.
+ */
+export function usePosCart(priceLists: PriceList[]) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [priceListId, setPriceListId] = useState<number | null>(null);
-  const [knownPriceLists, setKnownPriceLists] = useState<PriceListRef[]>([]);
+
+  // La lista por defecto manda mientras el operador no elija otra
+  useEffect(() => {
+    if (priceListId !== null || priceLists.length === 0) return;
+    const porDefecto = priceLists.find((lista) => lista.isDefault) ?? priceLists[0]!;
+    setPriceListId(porDefecto.id);
+  }, [priceLists, priceListId]);
 
   /**
    * Suma un producto. Si ya está en el carrito solo incrementa la
@@ -32,18 +44,6 @@ export function usePosCart() {
    */
   const addProduct = useCallback(
     (product: ProductDetail, quantity = 1) => {
-      // Acumular las listas vistas: sin endpoint de listas de precios, es
-      // la única forma de saber cuáles existen.
-      setKnownPriceLists((previas) => {
-        const porId = new Map(previas.map((lista) => [lista.id, lista]));
-        for (const precio of product.prices) porId.set(precio.priceList.id, precio.priceList);
-        return [...porId.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
-      });
-
-      // La primera carga fija la lista de trabajo si todavía no hay una
-      const listaActiva = priceListId ?? product.prices[0]?.priceListId ?? null;
-      if (priceListId === null && listaActiva !== null) setPriceListId(listaActiva);
-
       setLines((previas) => {
         const existente = previas.find((linea) => linea.productId === product.id);
         if (existente !== undefined) {
@@ -54,7 +54,7 @@ export function usePosCart() {
           );
         }
 
-        const { unitPrice, listPrice } = resolvePrice(product.prices, listaActiva);
+        const { unitPrice, listPrice } = resolvePrice(product.prices, priceListId);
         return [
           ...previas,
           {
@@ -124,7 +124,6 @@ export function usePosCart() {
     totals,
     units,
     priceListId,
-    knownPriceLists,
     addProduct,
     setQuantity,
     setUnitPrice,

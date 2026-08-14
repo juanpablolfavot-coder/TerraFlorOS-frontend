@@ -1,5 +1,22 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.3.0] — POS alineado con los endpoints nuevos del backend
+
+- `POST /api/cash/sessions` ahora manda **`registerId`** (antes
+  `cashRegisterId`). El backend unificó el nombre y su schema es `.strict()`,
+  así que el anterior devolvía 400
+- **Métodos de pago reales:** el panel de cobro consume
+  `GET /api/payment-methods`. Se quitó la degradación que deshabilitaba el
+  cobro por falta del endpoint; ahora el cobro se habilita normalmente
+- **Listas de precios del backend:** `GET /api/price-lists` devuelve las
+  activas con la default primera, y el POS la usa como precio base en vez de
+  deducirla de los precios cargados. Si hay más de una se puede elegir, y
+  cambiarla recalcula todo el carrito
+- **Un vendedor sin `cash.open` ya puede vender.** El backend pasó las
+  lecturas de caja a `sales.create` O `cash.open`; el guard del POS exigía
+  `cash.open` y habría anulado ese arreglo, dejando al vendedor sin poder
+  facturar. Abrir la caja sigue requiriendo `cash.open`
+
 ## [0.2.0] — POS de ventas y apertura de caja
 
 - **Apertura de caja** (`/caja`, y como primer paso del POS): elegir caja de

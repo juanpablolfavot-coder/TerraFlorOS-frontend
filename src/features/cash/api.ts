@@ -10,8 +10,8 @@ export const cashKeys = {
 
 /**
  * Cajas de la sucursal, con su sesión abierta si la tienen.
- * Ojo: el backend exige `cash.open` también para LISTAR, así que quien no
- * tenga ese permiso recibe 403 (ver PosPage).
+ * Leer requiere `sales.create` O `cash.open`: un vendedor necesita saber
+ * si hay caja abierta para poder facturar.
  */
 export function useRegisters(enabled = true) {
   return useQuery({

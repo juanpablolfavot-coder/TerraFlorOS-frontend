@@ -64,10 +64,11 @@ export interface CurrentSession {
 /**
  * POST /api/cash/sessions
  *
- * El campo es `cashRegisterId` (no `registerId`) y el schema del backend
- * es `.strict()`: cualquier otro nombre devuelve 400.
+ * `registerId`, igual que el resto de los endpoints de caja. El schema
+ * del backend es `.strict()`, así que el nombre viejo (`cashRegisterId`)
+ * ahora devuelve 400.
  */
 export interface OpenSessionBody {
-  cashRegisterId: number;
+  registerId: number;
   openingAmount: number;
 }

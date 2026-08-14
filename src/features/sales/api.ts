@@ -3,42 +3,43 @@ import { api, isApiError } from "@/lib/api";
 import { cashKeys } from "@/features/cash/api";
 import { queryClient } from "@/lib/queryClient";
 import type { Paginated, ProductListItem } from "@/features/products/types";
-import type { CreateSaleBody, PaymentMethod, ProductDetail, SaleCreated } from "./types";
+import type { CreateSaleBody, PaymentMethod, PriceList, ProductDetail, SaleCreated } from "./types";
 
 export const salesKeys = {
   paymentMethods: ["payment-methods"] as const,
+  priceLists: ["price-lists"] as const,
   productSearch: (term: string) => ["pos", "product-search", term] as const,
 };
 
-/**
- * Métodos de pago.
- *
- * OJO: al día de hoy el backend NO expone este endpoint (no hay router de
- * payment_methods en app.ts). Se deja pedido contra la ruta natural para
- * que funcione apenas se agregue; mientras tanto falla y el panel de
- * cobro lo informa.
- *
- * No se cablean ids fijos a propósito: los ids del seed no están
- * garantizados y cobrar con el método equivocado sería un error silencioso
- * en los datos, peor que no poder cobrar.
- */
+/** Catálogos que casi no cambian: no hace falta refrescarlos seguido. */
+const CATALOG_STALE_TIME = 5 * 60_000;
+
+/** Métodos de pago activos para cobrar. Requiere `sales.create`. */
 export function usePaymentMethods() {
   return useQuery({
     queryKey: salesKeys.paymentMethods,
     queryFn: async () => {
       const { data } = await api.get<PaymentMethod[]>("/api/payment-methods");
-      return data.filter((method) => method.isActive !== false);
+      return data;
     },
+    staleTime: CATALOG_STALE_TIME,
   });
 }
 
 /**
- * No hay hook de listas de precios porque el backend tampoco expone
- * `/api/price-lists`, y pedirlo sería un 404 en cada carga del POS. Las
- * listas se deducen de los precios de los productos cargados y el
- * operador elige cuál aplicar (ver PosPage). Si algún día existe el
- * endpoint, conviene usar su `isDefault` en vez de la deducción.
+ * Listas de precios activas, con la default primera. El POS toma esa
+ * primera como precio base en vez de deducirla de los productos.
  */
+export function usePriceLists() {
+  return useQuery({
+    queryKey: salesKeys.priceLists,
+    queryFn: async () => {
+      const { data } = await api.get<PriceList[]>("/api/price-lists");
+      return data;
+    },
+    staleTime: CATALOG_STALE_TIME,
+  });
+}
 
 /** Búsqueda por texto para el POS. El listado NO trae precios. */
 export function useProductSearch(term: string) {

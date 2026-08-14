@@ -26,9 +26,10 @@ export function CashPage() {
   useDocumentTitle("Caja");
 
   const { can } = useAuth();
-  const puedeAbrir = can(PERMISSIONS.CASH_OPEN);
+  // Leer cajas requiere sales.create o cash.open; abrirlas, cash.open.
+  const puedeLeer = can(PERMISSIONS.SALES_CREATE) || can(PERMISSIONS.CASH_OPEN);
 
-  const registers = useRegisters(puedeAbrir);
+  const registers = useRegisters(puedeLeer);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Al cargar, seleccionar la primera caja abierta (o la primera que haya)
@@ -41,12 +42,13 @@ export function CashPage() {
   const seleccionada = registers.data?.find((caja) => caja.id === selectedId) ?? null;
   const current = useCurrentSession(seleccionada?.openSession != null ? seleccionada.id : null);
 
-  if (!puedeAbrir) {
+  if (!puedeLeer) {
     return (
       <div className="space-y-8">
         <PageHeader title="Caja" description="Estado del turno." />
         <Alert tone="warning" title="No tenés acceso al estado de la caja">
-          Consultar y abrir cajas requiere el permiso <code className="font-mono">cash.open</code>.
+          Consultar cajas requiere <code className="font-mono">sales.create</code> o{" "}
+          <code className="font-mono">cash.open</code>.
         </Alert>
       </div>
     );
