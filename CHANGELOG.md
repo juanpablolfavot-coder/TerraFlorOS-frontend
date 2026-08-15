@@ -1,5 +1,41 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.18.0] — Logo y datos del vivero en los comprobantes
+
+- **Sección «Datos del vivero»** en Configuración: nombre, teléfono y dirección
+  editables, con la ayuda al lado de cada campo. Se ordenan como se leen (el
+  backend los devuelve alfabéticos, así que la dirección venía antes que el
+  nombre)
+- **Carga del logo**: se elige un PNG, JPG o WEBP y el navegador lo
+  **redimensiona a 400 px de ancho y lo comprime** antes de guardarlo. Un
+  archivo de 1,5 MB termina en unas decenas de KB. Se previsualiza el logo
+  actual, se puede reemplazar o quitar, y se muestra cuánto pesa
+- La compresión prueba formatos de menos a más pérdida —PNG, WEBP, JPEG sobre
+  blanco— y se queda con el primero que baje de ~200 KB: un logo plano
+  conserva la transparencia en PNG y una foto termina en JPEG, que es lo que
+  conviene en cada caso
+- Si el archivo no es una imagen, o ni comprimido entra, se avisa en criollo y
+  no se toca lo guardado
+- **El encabezado de los comprobantes sale de esos datos**: logo, nombre,
+  sucursal, dirección y teléfono, en presupuestos y en ventas. Sin logo se ve
+  prolijo igual, solo con texto
+- La impresión automática (`?accion=`) **espera a que el logo cargue** antes de
+  abrir el diálogo: si no, el PDF podía salir sin logo
+
+### Backend (repo `terrafloros-backend`)
+
+Estas settings no existían, así que se agregaron allá:
+
+- `company.phone`, `company.address` y `company.logo` sumadas al seed, que es
+  idempotente: correrlo sobre una base ya poblada crea solo lo nuevo. Hacía
+  falta porque `PATCH /api/settings` **no crea claves**
+- `company.logo` guarda la imagen como **data URL base64**; el schema la valida
+  aparte (PNG/JPG/WEBP, hasta 400.000 caracteres, `""` para borrarla). El resto
+  de las settings de texto sigue con su tope de 1000 caracteres — que era,
+  justamente, lo que hacía imposible guardar una imagen
+- La auditoría de un cambio de logo guarda `<imagen: N caracteres>` en vez del
+  base64
+
 ## [0.17.0] — Comprobantes reimprimibles y cobro más rápido
 
 ### Arreglado

@@ -1,6 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ALLOW_NEGATIVE, esVerdadero, type PatchSettingsBody, type Setting } from "./types";
+import {
+  ALLOW_NEGATIVE,
+  COMPANY_ADDRESS,
+  COMPANY_LOGO,
+  COMPANY_NAME,
+  COMPANY_PHONE,
+  esVerdadero,
+  type DatosDelVivero,
+  type PatchSettingsBody,
+  type Setting,
+} from "./types";
+
+const NOMBRE_POR_DEFECTO = import.meta.env.VITE_APP_NAME ?? "TerraFlorOS";
 
 export const settingsKeys = {
   all: ["settings"] as const,
@@ -36,6 +48,30 @@ export function useSettings(enabled = true) {
 export function usePermiteStockNegativo(enabled = true): boolean {
   const settings = useSettings(enabled);
   return esVerdadero(settings.data?.find((s) => s.key === ALLOW_NEGATIVE)?.value);
+}
+
+/**
+ * Datos del vivero para el encabezado de los comprobantes.
+ *
+ * Las claves pueden no existir en una base vieja (el seed las agregó
+ * después), así que todo cae a un valor razonable: sin nombre se usa el
+ * de la app, y sin logo el encabezado se muestra solo con texto.
+ * `cargando` sirve para no imprimir antes de tener el logo.
+ */
+export function useDatosDelVivero(): { datos: DatosDelVivero; cargando: boolean } {
+  const settings = useSettings();
+  const valor = (key: string) => settings.data?.find((s) => s.key === key)?.value.trim() ?? "";
+  const logo = valor(COMPANY_LOGO);
+
+  return {
+    datos: {
+      nombre: valor(COMPANY_NAME) || NOMBRE_POR_DEFECTO,
+      telefono: valor(COMPANY_PHONE),
+      direccion: valor(COMPANY_ADDRESS),
+      logo: logo === "" ? null : logo,
+    },
+    cargando: settings.isPending,
+  };
 }
 
 /**

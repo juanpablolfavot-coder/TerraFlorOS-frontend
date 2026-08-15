@@ -13,11 +13,22 @@ import { getApiErrorMessage } from "@/lib/api";
 import { useDocumentTitle } from "@/lib/hooks";
 import { cn } from "@/lib/cn";
 import { useSettings, useUpdateSettings } from "./api";
-import { ALLOW_NEGATIVE, esVerdadero, NUMERIC_KEYS, type Setting } from "./types";
+import { LogoField } from "./LogoField";
+import {
+  ALLOW_NEGATIVE,
+  COMPANY_LOGO,
+  COMPANY_ORDER,
+  esVerdadero,
+  NUMERIC_KEYS,
+  type Setting,
+} from "./types";
 
 /** Nombre legible de cada grupo, deducido del prefijo de la clave. */
 const GRUPO: Record<string, { titulo: string; descripcion: string }> = {
-  company: { titulo: "Comercio", descripcion: "Datos del negocio." },
+  company: {
+    titulo: "Datos del vivero",
+    descripcion: "Salen impresos en los presupuestos y comprobantes de venta.",
+  },
   pricing: { titulo: "Precios", descripcion: "Cómo se calculan y redondean." },
   stock: { titulo: "Stock", descripcion: "Qué se puede hacer cuando falta mercadería." },
   purchases: { titulo: "Compras", descripcion: "Alertas al cargar costos." },
@@ -27,7 +38,18 @@ const GRUPO: Record<string, { titulo: string; descripcion: string }> = {
  * Ayuda en castellano para las claves que valen la pena explicar. La
  * `description` del backend es corta y técnica; acá se agrega el porqué.
  */
+const ETIQUETA: Record<string, string> = {
+  "company.name": "Nombre del vivero",
+  "company.phone": "Teléfono",
+  "company.address": "Dirección",
+  "company.currency": "Moneda",
+  "company.timezone": "Zona horaria",
+};
+
 const AYUDA: Record<string, string> = {
+  "company.name": "Encabeza los comprobantes, arriba de todo.",
+  "company.phone": "Aparece bajo el nombre en el comprobante. Dejalo vacío si no querés mostrarlo.",
+  "company.address": "Aparece bajo el nombre en el comprobante. Dejalo vacío si no querés mostrarla.",
   [ALLOW_NEGATIVE]:
     "Si está activado, podés vender productos aunque no tengan stock cargado. El stock queda en negativo y lo regularizás después. Útil mientras cargás tu inventario.",
   "pricing.rounding": "Los precios se redondean al múltiplo indicado. 0 = sin redondeo.",
@@ -149,6 +171,20 @@ export function SettingsPage() {
     grupos.set(grupo, [...(grupos.get(grupo) ?? []), setting]);
   }
 
+  /**
+   * El backend devuelve las settings alfabéticas, y en los datos del
+   * vivero eso deja la dirección antes que el nombre. Se ordenan como se
+   * leen; las claves que no estén en la lista van al final.
+   */
+  const datosDelVivero = grupos.get("company");
+  if (datosDelVivero !== undefined) {
+    const orden = (key: string) => {
+      const indice = (COMPANY_ORDER as readonly string[]).indexOf(key);
+      return indice === -1 ? COMPANY_ORDER.length : indice;
+    };
+    grupos.set("company", [...datosDelVivero].sort((a, b) => orden(a.key) - orden(b.key)));
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -187,6 +223,17 @@ export function SettingsPage() {
               const valor = valorDe(setting);
               const cambiada = pendientes.some((p) => p.key === setting.key);
 
+              if (setting.key === COMPANY_LOGO) {
+                return (
+                  <LogoField
+                    key={setting.key}
+                    valor={valor}
+                    cambiado={cambiada}
+                    onChange={(dataUrl) => set(setting.key, dataUrl)}
+                  />
+                );
+              }
+
               if (setting.key === ALLOW_NEGATIVE) {
                 const activo = esVerdadero(valor);
                 return (
@@ -215,7 +262,7 @@ export function SettingsPage() {
               return (
                 <div key={setting.key} className="max-w-xl">
                   <Input
-                    label={setting.description ?? setting.key}
+                    label={ETIQUETA[setting.key] ?? setting.description ?? setting.key}
                     value={valor}
                     inputMode={esNumerica(setting.key) ? "decimal" : undefined}
                     onChange={(event) => set(setting.key, event.target.value)}

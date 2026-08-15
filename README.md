@@ -85,6 +85,7 @@ src/
     api.ts               Instancia de Axios + refresh de sesión
     session.ts           Access token en memoria
     format.ts            Dinero, cantidades y fechas en es-AR
+    image.ts             Redimensiona y comprime el logo antes de guardarlo
     print.ts             Imprimir y "descargar PDF" de los comprobantes
     safe.ts              Lecturas defensivas de respuestas del backend
     queryClient.ts       Configuración de TanStack Query
@@ -207,8 +208,10 @@ Implementado:
 - **Usuarios**: padrón con filtros, alta con rol y sucursal, edición,
   cambio de contraseña y editor de permisos individuales sobre el rol
 - **Configuración**: las settings del sistema agrupadas, con el interruptor
-  de «permitir vender sin stock» explicado en criollo
-- **Comprobantes**: presupuesto y venta comparten la misma hoja imprimible.
+  de «permitir vender sin stock» explicado en criollo, y los **datos del
+  vivero** (nombre, teléfono, dirección y logo) que salen en los comprobantes
+- **Comprobantes**: presupuesto y venta comparten la misma hoja imprimible,
+  encabezada con el logo, el nombre, la dirección y el teléfono del vivero.
   Son documentos de cara al cliente: sin costos, sin márgenes y sin el nombre
   de la lista de precios con la que se facturó
 - **Inventario**: stock disponible por producto con filtros y atajo a los
@@ -238,6 +241,14 @@ Detalles del contrato que conviene tener presentes:
 - **Leer clientes acepta `sales.create` o `customers.manage`** (mismo criterio
   que la caja): el POS necesita buscar y elegir cliente al facturar. Crear,
   editar, borrar y tocar direcciones exige `customers.manage`
+- **El logo del vivero es una setting**, no un archivo: `company.logo` guarda
+  un data URL base64. El navegador redimensiona la imagen a 400 px de ancho y
+  la comprime antes de mandarla (`lib/image.ts`), porque el backend acepta
+  hasta 400.000 caracteres. El resto de las settings de texto sigue topado en
+  1000 caracteres, así que **solo el logo puede ser largo**
+- **`PATCH /api/settings` no crea claves**: si una setting no está en la base,
+  responde 400. Las claves nuevas se agregan corriendo el seed del backend,
+  que es idempotente
 - **El detalle de un turno de caja NO trae `session.sales`**: ese agregado
   existe solo en las filas del listado (`GET /api/cash/sessions`). En el
   detalle las ventas vienen como array aparte —con las anuladas incluidas— y
