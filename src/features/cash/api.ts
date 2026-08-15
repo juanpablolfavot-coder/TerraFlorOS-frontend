@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, isApiError } from "@/lib/api";
+import type { Paginated } from "@/features/products/types";
 import type {
   CashMovement,
   CashRegister,
@@ -9,7 +10,10 @@ import type {
   CreateMovementBody,
   CurrentSession,
   OpenSessionBody,
+  SessionDetail,
+  SessionListItem,
   SessionMovement,
+  SessionsQuery,
 } from "./types";
 
 export const cashKeys = {
@@ -17,6 +21,8 @@ export const cashKeys = {
   registers: ["cash", "registers"] as const,
   current: (registerId: number) => ["cash", "current", registerId] as const,
   movements: (sessionId: number) => ["cash", "movements", sessionId] as const,
+  history: (query: SessionsQuery) => ["cash", "history", query] as const,
+  session: (sessionId: number) => ["cash", "session", sessionId] as const,
 };
 
 /**
@@ -86,6 +92,36 @@ export function useSessionMovements(sessionId: number | null) {
       const { data } = await api.get<SessionMovement[]>(
         `/api/cash/sessions/${sessionId}/movements`
       );
+      return data;
+    },
+  });
+}
+
+/**
+ * Historial de cajas, más reciente primero. Incluye las abiertas.
+ * Leerlo pide `cash.close` o `reports.view` — no alcanza con las
+ * lecturas del turno en curso.
+ */
+export function useSessionHistory(query: SessionsQuery) {
+  return useQuery({
+    queryKey: cashKeys.history(query),
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<SessionListItem>>("/api/cash/sessions", {
+        params: query,
+      });
+      return data;
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Detalle de una sesión, esté abierta o cerrada. */
+export function useSessionDetail(sessionId: number | null) {
+  return useQuery({
+    queryKey: cashKeys.session(sessionId ?? 0),
+    enabled: sessionId !== null,
+    queryFn: async () => {
+      const { data } = await api.get<SessionDetail>(`/api/cash/sessions/${sessionId}`);
       return data;
     },
   });

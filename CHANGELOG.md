@@ -1,5 +1,39 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.15.0] — Historial de cajas
+
+- **Historial en `/caja/historial`**: los turnos, más reciente primero, con
+  caja, apertura y cierre (con quién los hizo), total y cantidad de ventas,
+  efectivo esperado, contado y **la diferencia bien visible** — verde cuando
+  cuadra, celeste el sobrante, ámbar el faltante, siempre con el signo
+- Filtros por caja, estado (abiertas/cerradas) y rango de fechas. Los turnos
+  en curso se muestran como «En curso», sin contado ni diferencia
+- **Detalle del turno** (sirve para uno cerrado o para el que está abierto):
+  quién abrió y cerró, arqueo completo, ventas por medio de pago,
+  movimientos de caja y **las ventas con su hora**, para ver a qué hora se
+  vendió dentro del turno. La venta anulada se marca y se tacha
+- Si en el turno hubo vuelto, se aclara igual que en el cierre: el efectivo
+  de la tabla es el bruto y el esperado es el neto
+- Nueva entrada de menú «Historial de cajas», más un enlace desde la caja
+  actual
+
+### Sobre el contrato del backend
+
+- El historial pide **`cash.close` o `reports.view`**, distinto de las
+  lecturas del turno en curso (`sales.create` o `cash.open`). Por eso tiene
+  su propia entrada de menú: un encargado con `reports.view` no entra a
+  `/caja` pero sí al historial
+- El detalle **no expone con qué medio se pagó cada venta**: el desglose por
+  medio de pago es del turno completo, y así se aclara en pantalla
+
+### Cambios internos
+
+- La tabla de movimientos salió de `CashMovementsCard` a
+  `CashMovementsTable`, que ahora comparten la caja en curso y el detalle
+  del historial
+- `CashDifference` centraliza cómo se muestra la diferencia de arqueo, con
+  el mismo vocabulario y los mismos colores del diálogo de cierre
+
 ## [0.14.0] — Configuración y aviso de venta sin stock
 
 - **Pantalla de Configuración** en `/configuracion` (permiso

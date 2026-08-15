@@ -67,7 +67,7 @@ src/
     ui/                  Button, Input, Card, Table, Spinner, …
   features/
     auth/                Contexto de sesión, permisos y guards
-    cash/                Caja: apertura, movimientos y cierre
+    cash/                Caja: apertura, movimientos, cierre e historial
     categories/          Árbol de categorías
     customers/           Clientes, direcciones y cuenta corriente
     dashboard/           Panel del día
@@ -177,6 +177,9 @@ Implementado:
   pago mixto con vuelto en efectivo y cobro
 - **Caja**: apertura, resumen del turno en vivo, detalle completo de
   movimientos (manuales y automáticos) y cierre con arqueo
+- **Historial de cajas**: turnos cerrados y abiertos con su diferencia de
+  arqueo, y el detalle de cada uno (arqueo, ventas por medio de pago,
+  movimientos y las ventas con su hora)
 - **Catálogo**: lista con filtros, alta y edición de productos con ficha
   botánica, precios por lista con historial, códigos de barras y árbol de
   categorías
@@ -257,6 +260,13 @@ Detalles del contrato que conviene tener presentes:
   venta. Por eso el resumen del turno expone `summary.changeGiven`: el
   efectivo de `salesByPaymentMethod` es el bruto y `expectedCash` es el neto,
   y el vuelto es exactamente la diferencia entre los dos
+- **El historial de cajas pide `cash.close` o `reports.view`**, no los
+  permisos del turno en curso: el cajero revisa sus propios cierres y un
+  encargado con `reports.view` puede mirarlos sin tocar la caja. Por eso
+  tiene su propia entrada de menú, y no solo un enlace dentro de Caja
+- **El detalle de un turno no dice con qué medio se pagó cada venta.** El
+  desglose por medio de pago que devuelve es AGREGADO del turno; la lista de
+  ventas trae número, hora, total, cliente y estado
 - **`stock.allow_negative` cambia el comportamiento de la venta.** Con la
   setting en `true` el backend acepta vender sin stock (queda negativo y se
   regulariza después) y marca la venta con `oversold`; con `false` responde

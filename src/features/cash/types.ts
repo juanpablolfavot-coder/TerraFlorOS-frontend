@@ -155,3 +155,72 @@ export interface ClosedSession extends Omit<CashSession, "openedBy"> {
   countedAmount: Decimal;
   difference: Decimal;
 }
+
+// ---------------------------------------------------------------
+// Historial de cajas
+// ---------------------------------------------------------------
+
+/**
+ * Fila de `GET /api/cash/sessions`.
+ *
+ * Leerlo pide `cash.close` **o** `reports.view`: el cajero tiene que
+ * poder revisar sus propios arqueos, y el rol Cajero del seed no tiene
+ * `reports.view`.
+ */
+export interface SessionListItem {
+  id: number;
+  cashRegisterId: number;
+  openedById: number;
+  closedById: number | null;
+  openedAt: string;
+  closedAt: string | null;
+  openingAmount: Decimal;
+  /** Los tres del arqueo son `null` mientras la caja siga abierta. */
+  expectedAmount: Decimal | null;
+  countedAmount: Decimal | null;
+  difference: Decimal | null;
+  notes: string | null;
+  cashRegister: { id: number; name: string; branchId: number };
+  openedBy: { id: number; username: string; fullName: string };
+  /** `closedById` no tiene relación en Prisma: el backend lo resuelve aparte. */
+  closedBy: { id: number; username: string; fullName: string } | null;
+  isOpen: boolean;
+  /** Ventas COMPLETED del turno. Llegan como number, ya sumadas. */
+  sales: { total: number; count: number };
+}
+
+/** Venta del turno, tal como la trae el detalle de la sesión. */
+export interface SessionSale {
+  id: number;
+  number: string;
+  total: Decimal;
+  changeGiven: Decimal;
+  status: "COMPLETED" | "VOIDED";
+  createdAt: string;
+  customer: { id: number; name: string } | null;
+}
+
+/**
+ * `GET /api/cash/sessions/:id`, para una sesión abierta o cerrada.
+ *
+ * `summary` es el mismo que devuelve `/sessions/current`, así que el
+ * desglose por método de pago es AGREGADO del turno: el backend no
+ * expone con qué método se pagó cada venta.
+ */
+export interface SessionDetail {
+  session: SessionListItem;
+  summary: CurrentSession["summary"];
+  movements: SessionMovement[];
+  sales: SessionSale[];
+}
+
+export interface SessionsQuery {
+  page?: number;
+  pageSize?: number;
+  registerId?: number;
+  status?: "open" | "closed";
+  openedById?: number;
+  closedById?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}

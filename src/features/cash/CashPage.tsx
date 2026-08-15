@@ -16,6 +16,7 @@ import {
   THead,
   TR,
 } from "@/components/ui";
+import { Link } from "react-router-dom";
 import { Can, PERMISSIONS, useAuth } from "@/features/auth";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney, formatNumber, toNumber } from "@/lib/format";
@@ -79,7 +80,20 @@ export function CashPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Caja" description="Estado del turno y apertura." />
+      <PageHeader
+        title="Caja"
+        description="Estado del turno y apertura."
+        actions={
+          <Can anyOf={[PERMISSIONS.CASH_CLOSE, PERMISSIONS.REPORTS_VIEW]}>
+            <Link
+              to="/caja/historial"
+              className="text-sm font-medium text-stone-500 hover:text-stone-800"
+            >
+              Historial de cajas
+            </Link>
+          </Can>
+        }
+      />
 
       {cajas.length > 1 && (
         <Card flush>

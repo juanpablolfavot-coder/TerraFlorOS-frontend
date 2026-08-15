@@ -71,6 +71,15 @@ export const IconUsers = (props: IconProps) => (
   </Icon>
 );
 
+/** Historial de cajas: un reloj con su flecha de vuelta atrás. */
+export const IconHistory = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
+    <path d="M3 4v4.5h4.5" />
+    <path d="M12 7.5V12l3 1.8" />
+  </Icon>
+);
+
 /** Configuración: el engranaje de siempre. */
 export const IconSettings = (props: IconProps) => (
   <Icon {...props}>

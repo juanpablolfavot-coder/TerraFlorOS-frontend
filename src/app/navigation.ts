@@ -5,6 +5,7 @@ import {
   IconCash,
   IconContact,
   IconDashboard,
+  IconHistory,
   IconLeaf,
   IconQuote,
   IconSales,
@@ -64,6 +65,13 @@ export const NAV_ITEMS: NavItem[] = [
       PERMISSIONS.CASH_MOVEMENT,
       PERMISSIONS.CASH_CLOSE,
     ],
+  },
+  {
+    label: "Historial de cajas",
+    to: "/caja/historial",
+    icon: IconHistory,
+    // El backend pide cash.close O reports.view para el historial
+    anyOf: [PERMISSIONS.CASH_CLOSE, PERMISSIONS.REPORTS_VIEW],
   },
   {
     label: "Productos",

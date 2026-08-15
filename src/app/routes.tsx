@@ -1,6 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { CashHistoryPage } from "@/features/cash/CashHistoryPage";
 import { CashPage } from "@/features/cash/CashPage";
+import { CashSessionDetailPage } from "@/features/cash/CashSessionDetailPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { CustomerDetailPage } from "@/features/customers/CustomerDetailPage";
 import { CustomersPage } from "@/features/customers/CustomersPage";
@@ -77,6 +79,18 @@ export function AppRoutes() {
             }
           >
             <Route path="caja" element={<CashPage />} />
+          </Route>
+
+          {/* El historial pide cash.close o reports.view, no los permisos
+              del turno en curso: un encargado con reports.view lo ve sin
+              poder tocar la caja, y el cajero revisa sus propios cierres. */}
+          <Route
+            element={
+              <RequirePermission anyOf={[PERMISSIONS.CASH_CLOSE, PERMISSIONS.REPORTS_VIEW]} />
+            }
+          >
+            <Route path="caja/historial" element={<CashHistoryPage />} />
+            <Route path="caja/historial/:id" element={<CashSessionDetailPage />} />
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>
