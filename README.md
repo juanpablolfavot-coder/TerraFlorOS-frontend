@@ -71,6 +71,7 @@ src/
     categories/          Árbol de categorías
     customers/           Clientes, direcciones y cuenta corriente
     dashboard/           Panel del día
+    prices/              Consulta de precios de mostrador
     products/            Catálogo: lista, ficha, precios y códigos
     purchases/           Compras, recepción y productos a reponer
     sales/               POS: buscador, carrito y cobro
@@ -180,6 +181,9 @@ Implementado:
   lotes, y la lista de productos bajo stock mínimo
 - **Proveedores**: padrón con búsqueda, ficha completa, catálogo del
   proveedor y las compras hechas a cada uno
+- **Consulta de precios**: pantalla de mostrador para responder «¿cuánto
+  está esto?» — se escanea o se busca, y muestra precio de venta, stock y
+  ficha de la planta en grande. Nunca costos, aunque el usuario los tenga
 - **Clientes**: padrón con búsqueda y filtros, ficha con direcciones,
   cuenta corriente (solo lectura) y sus compras, más el selector de cliente
   del POS
@@ -242,6 +246,10 @@ Detalles del contrato que conviene tener presentes:
   venta. Por eso el resumen del turno expone `summary.changeGiven`: el
   efectivo de `salesByPaymentMethod` es el bruto y `expectedCash` es el neto,
   y el vuelto es exactamente la diferencia entre los dos
+- **`GET /api/products/:id` NO trae `defaultPrice` ni `availableStock`**: esos
+  dos los agrega solo el listado, con consultas agregadas por página. Por eso
+  la consulta de precios saca los precios por lista del detalle (`prices`) y
+  el stock del listado, buscando por SKU
 - **El listado de productos trae `defaultPrice` y `availableStock`**, los dos
   como `number` ya calculado (no son `Decimal`). `defaultPrice` es el precio
   en la lista por defecto y viene `null` si el producto no cotiza en ella;

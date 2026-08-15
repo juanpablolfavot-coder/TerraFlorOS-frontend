@@ -1,5 +1,36 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.11.0] — Consulta de precios
+
+- **Pantalla nueva en `/consulta-precios`** para responder «¿cuánto está
+  esto?» sin entrar al POS: no toca el carrito ni la caja, es solo lectura y
+  pide `products.view`
+- **Un solo buscador, siempre enfocado**, igual que el POS: Enter busca el
+  código exacto por `/api/products/by-barcode`, y escribir busca por texto
+  con debounce (nombre, SKU, código interno, código de barras o nombre
+  científico)
+- **Pensada para mostrarle la pantalla al cliente**: nombre grande, precio
+  gigante, y el SKU, la categoría y el nombre científico como datos
+  secundarios. De la planta se muestran tamaño, exposición, ambiente y riego
+  cuando la ficha los tiene
+- **Precio por lista**: arranca en la lista por defecto y, si hay más de una,
+  se puede cambiar y el precio se actualiza. La lista elegida queda a la
+  vista al lado del precio, para no confundir un precio mayorista con uno
+  minorista
+- Si el producto no cotiza en esa lista dice **«Sin precio»**, nunca $ 0,00
+- **Sin costos ni márgenes**, aunque el usuario tenga `products.view_cost`:
+  es una vista de cara al público
+- «Consultar otro» limpia y devuelve el foco al buscador; Escape hace lo
+  mismo sin sacar las manos del teclado
+
+### Sobre el contrato del backend
+
+- `GET /api/products/:id` no trae `availableStock` (lo agrega solo el
+  listado), así que la pantalla toma los precios por lista del detalle y el
+  stock del listado buscando por SKU. `ProductDetail` dejó de declarar esos
+  dos campos, que hasta ahora se tipaban como presentes y llegaban
+  `undefined`
+
 ## [0.10.0] — Vuelto en efectivo y panel de pago más cómodo
 
 - **Vuelto**: el efectivo ya puede superar el total. Cuando sobra, el panel

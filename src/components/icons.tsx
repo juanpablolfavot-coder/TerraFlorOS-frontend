@@ -71,6 +71,14 @@ export const IconUsers = (props: IconProps) => (
   </Icon>
 );
 
+/** Consulta de precios: etiqueta colgante con su agujero. */
+export const IconTag = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M11 3H4a1 1 0 0 0-1 1v7l9.5 9.5a1.5 1.5 0 0 0 2.1 0l6-6a1.5 1.5 0 0 0 0-2.1L11 3Z" />
+    <circle cx="7.5" cy="7.5" r="1.2" />
+  </Icon>
+);
+
 /** Clientes: una sola persona en su ficha, distinta de IconUsers. */
 export const IconContact = (props: IconProps) => (
   <Icon {...props}>

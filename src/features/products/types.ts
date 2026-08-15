@@ -146,8 +146,13 @@ export interface ProductPriceRow {
 /**
  * `GET /api/products/:id`. A diferencia del listado trae precios,
  * códigos de barras y la ficha completa.
+ *
+ * Ojo con lo que NO trae: `defaultPrice` y `availableStock` los agrega
+ * solo el listado (con consultas agregadas por página), así que se omiten
+ * acá en vez de dejarlos tipados como presentes y leer `undefined`.
  */
-export interface ProductDetail extends Omit<ProductListItem, "plantDetail"> {
+export interface ProductDetail
+  extends Omit<ProductListItem, "plantDetail" | "defaultPrice" | "availableStock"> {
   category: { id: number; name: string; parentId: number | null } | null;
   plantDetail: PlantDetail | null;
   barcodes: ProductBarcode[];

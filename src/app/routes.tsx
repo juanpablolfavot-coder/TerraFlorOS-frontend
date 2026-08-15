@@ -5,6 +5,7 @@ import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { CustomerDetailPage } from "@/features/customers/CustomerDetailPage";
 import { CustomersPage } from "@/features/customers/CustomersPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { PriceLookupPage } from "@/features/prices/PriceLookupPage";
 import { ProductDetailPage } from "@/features/products/ProductDetailPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
 import { PurchaseDetailPage } from "@/features/purchases/PurchaseDetailPage";
@@ -60,6 +61,7 @@ export function AppRoutes() {
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>
+            <Route path="consulta-precios" element={<PriceLookupPage />} />
             <Route path="productos" element={<ProductsPage />} />
             {/* "nuevo" y :id comparten pantalla: el alta es el detalle vacío */}
             <Route path="productos/:id" element={<ProductDetailPage />} />

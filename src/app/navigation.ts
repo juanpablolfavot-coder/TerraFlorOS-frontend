@@ -7,6 +7,7 @@ import {
   IconDashboard,
   IconLeaf,
   IconSales,
+  IconTag,
   IconTruck,
   IconUsers,
 } from "@/components/icons";
@@ -36,6 +37,12 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/ventas",
     icon: IconSales,
     anyOf: [PERMISSIONS.SALES_CREATE],
+  },
+  {
+    label: "Consulta de precios",
+    to: "/consulta-precios",
+    icon: IconTag,
+    anyOf: [PERMISSIONS.PRODUCTS_VIEW],
   },
   {
     label: "Caja",
