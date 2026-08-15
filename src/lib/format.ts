@@ -71,6 +71,23 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   return Number.isNaN(date.getTime()) ? "—" : dateTimeFormatter.format(date);
 }
 
+/**
+ * Cantidad con su unidad, pluralizando el nombre: 1 unidad, 12 unidades,
+ * 3 bolsas. Las abreviaturas (kg, m2) se dejan como están.
+ */
+export function formatQuantityWithUnit(value: Decimal | null | undefined, unit: string): string {
+  const cantidad = toNumber(value);
+  const nombre =
+    cantidad === 1
+      ? unit
+      : /[aeiouáéíóú]$/i.test(unit)
+        ? `${unit}s`
+        : /[a-zñáéíóú]{3,}$/i.test(unit)
+          ? `${unit}es`
+          : unit;
+  return `${formatQuantity(cantidad)} ${nombre}`;
+}
+
 /** `YYYY-MM-DD`, el formato que esperan los inputs date y los filtros. */
 export function toDateInputValue(date: Date): string {
   return date.toISOString().slice(0, 10);

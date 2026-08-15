@@ -74,6 +74,7 @@ src/
     prices/              Consulta de precios de mostrador
     products/            Catálogo: lista, ficha, precios y códigos
     purchases/           Compras, recepción y productos a reponer
+    quotes/              Presupuestos y su conversión en venta
     sales/               POS: buscador, carrito y cobro
     suppliers/           Proveedores y su catálogo
   lib/
@@ -181,6 +182,9 @@ Implementado:
   lotes, y la lista de productos bajo stock mínimo
 - **Proveedores**: padrón con búsqueda, ficha completa, catálogo del
   proveedor y las compras hechas a cada uno
+- **Presupuestos**: cotizaciones con precio congelado y vencimiento a los 7
+  días, con comprobante para imprimir y conversión en venta (que es donde se
+  piden la caja y los pagos)
 - **Consulta de precios**: pantalla de mostrador para responder «¿cuánto
   está esto?» — se escanea o se busca, y muestra precio de venta, stock y
   ficha de la planta en grande. Nunca costos, aunque el usuario los tenga
@@ -246,6 +250,18 @@ Detalles del contrato que conviene tener presentes:
   venta. Por eso el resumen del turno expone `summary.changeGiven`: el
   efectivo de `salesByPaymentMethod` es el bruto y `expectedCash` es el neto,
   y el vuelto es exactamente la diferencia entre los dos
+- **Presupuestos: el vencimiento no es un estado.** El enum tiene `EXPIRED`
+  pero ningún código lo escribe: el backend compara `expiresAt` contra su
+  reloj y manda el flag `isExpired`. Un presupuesto vencido sigue en
+  `ACTIVE`, así que la interfaz muestra estado y vencimiento por separado y
+  no ofrece filtrar por «vencido»
+- **`POST /api/quotes/:id/convert` recibe solo `{ registerId, payments, notes? }`**:
+  los items y sus precios salen del presupuesto, no del body. Por eso la
+  conversión es una pantalla propia y no el POS, que ni siquiera podría
+  mandar su carrito
+- **Convertir puede fallar por stock**: el presupuesto NO reserva mercadería.
+  El backend hace todo en una transacción, así que ante el 409 el
+  presupuesto sigue activo y se puede reintentar
 - **`GET /api/products/:id` NO trae `defaultPrice` ni `availableStock`**: esos
   dos los agrega solo el listado, con consultas agregadas por página. Por eso
   la consulta de precios saca los precios por lista del detalle (`prices`) y

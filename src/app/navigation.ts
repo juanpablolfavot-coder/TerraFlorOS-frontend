@@ -6,6 +6,7 @@ import {
   IconContact,
   IconDashboard,
   IconLeaf,
+  IconQuote,
   IconSales,
   IconTag,
   IconTruck,
@@ -36,6 +37,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Ventas",
     to: "/ventas",
     icon: IconSales,
+    anyOf: [PERMISSIONS.SALES_CREATE],
+  },
+  {
+    label: "Presupuestos",
+    to: "/presupuestos",
+    icon: IconQuote,
+    // Igual que el backend: presupuestar pide el mismo permiso que vender
     anyOf: [PERMISSIONS.SALES_CREATE],
   },
   {

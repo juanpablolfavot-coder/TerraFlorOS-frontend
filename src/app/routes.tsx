@@ -9,6 +9,11 @@ import { PriceLookupPage } from "@/features/prices/PriceLookupPage";
 import { ProductDetailPage } from "@/features/products/ProductDetailPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
 import { PurchaseDetailPage } from "@/features/purchases/PurchaseDetailPage";
+import { QuoteConvertPage } from "@/features/quotes/QuoteConvertPage";
+import { QuoteDetailPage } from "@/features/quotes/QuoteDetailPage";
+import { QuoteFormPage } from "@/features/quotes/QuoteFormPage";
+import { QuotePrintPage } from "@/features/quotes/QuotePrintPage";
+import { QuotesPage } from "@/features/quotes/QuotesPage";
 import { PurchasesPage } from "@/features/purchases/PurchasesPage";
 import { RestockPage } from "@/features/purchases/RestockPage";
 import { SupplierDetailPage } from "@/features/suppliers/SupplierDetailPage";
@@ -31,6 +36,11 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<RequireAuth />}>
+        {/* Fuera del layout: el comprobante se imprime sin menú ni barra */}
+        <Route element={<RequirePermission permission={PERMISSIONS.SALES_CREATE} />}>
+          <Route path="presupuestos/:id/comprobante" element={<QuotePrintPage />} />
+        </Route>
+
         <Route element={<AppLayout />}>
           <Route index element={<HomeRedirect />} />
           <Route path="sin-permiso" element={<ForbiddenPage />} />
@@ -41,6 +51,12 @@ export function AppRoutes() {
 
           <Route element={<RequirePermission permission={PERMISSIONS.SALES_CREATE} />}>
             <Route path="ventas" element={<PosPage />} />
+            {/* Presupuestar pide el mismo permiso que vender */}
+            <Route path="presupuestos" element={<QuotesPage />} />
+            <Route path="presupuestos/nuevo" element={<QuoteFormPage />} />
+            <Route path="presupuestos/:id" element={<QuoteDetailPage />} />
+            <Route path="presupuestos/:id/editar" element={<QuoteFormPage />} />
+            <Route path="presupuestos/:id/convertir" element={<QuoteConvertPage />} />
           </Route>
 
           <Route

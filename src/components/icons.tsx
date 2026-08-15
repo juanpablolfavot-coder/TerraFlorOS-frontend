@@ -71,6 +71,15 @@ export const IconUsers = (props: IconProps) => (
   </Icon>
 );
 
+/** Presupuestos: una hoja con renglones y su total. */
+export const IconQuote = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 3h8l4 4v14H6z" />
+    <path d="M14 3v4h4" />
+    <path d="M9 12h6M9 16h4" />
+  </Icon>
+);
+
 /** Consulta de precios: etiqueta colgante con su agujero. */
 export const IconTag = (props: IconProps) => (
   <Icon {...props}>

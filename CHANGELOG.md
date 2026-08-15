@@ -1,5 +1,48 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.12.0] — Presupuestos con conversión a venta
+
+- **Lista de presupuestos** con número, cliente (o «Sin cliente»), fecha,
+  vencimiento, estado y total, con filtros por estado, cliente y rango de
+  fechas. El vencido se destaca en la fila
+- **Alta y edición** con la misma mecánica del POS pero sin pagos ni caja:
+  buscador que escanea o busca, cantidad, precio (editable solo con
+  `sales.discount`) y descuento por ítem. Cliente opcional con el mismo
+  selector del POS; si tiene lista asignada, la pantalla la fija y lo explica
+- **Detalle** con los datos, los ítems a precio congelado, el total, y las
+  acciones que correspondan al estado: convertir, editar y cancelar mientras
+  esté vigente; solo cancelar si venció; nada si ya se convirtió o se canceló
+- **Comprobante imprimible** en `/presupuestos/:id/comprobante`: página
+  limpia, sin menú ni barra, con los precios, la validez y la aclaración de
+  que no reserva mercadería. Los botones no salen en el papel
+- **Conversión en venta** en su propia pantalla: muestra los ítems como solo
+  lectura y pide lo único que el presupuesto no tiene — caja y pagos —
+  reusando el panel de pago con vuelto. Al terminar muestra el número de
+  venta y el vuelto a entregar
+- Si falta stock, el error dice **qué producto y cuánto hay**, y aclara que
+  el presupuesto sigue activo: no reserva mercadería, así que puede haberse
+  vendido en el medio
+- Un presupuesto vencido no ofrece el botón de convertir, y entrar a mano a
+  la URL de conversión también queda bloqueado con el motivo
+
+### Sobre el contrato del backend
+
+- El vencimiento **no es un estado**: el enum tiene `EXPIRED` pero nadie lo
+  escribe. El backend lo calcula contra su propio reloj y manda `isExpired`,
+  así que el vencido sigue estando `ACTIVE` y la interfaz muestra las dos
+  cosas por separado
+- `convert` recibe solo `{ registerId, payments, notes? }`: los ítems y sus
+  precios salen del presupuesto. Por eso la conversión es una pantalla
+  dedicada y no el POS
+- Presupuestar por debajo del precio de lista exige `sales.discount`, igual
+  que vender
+
+### Cambios internos
+
+- `formatQuantityWithUnit` en `lib/format.ts` pluraliza el nombre de la
+  unidad (unidad → unidades, bolsa → bolsas) sin romper las abreviaturas;
+  lo usan los presupuestos, el comprobante y la consulta de precios
+
 ## [0.11.0] — Consulta de precios
 
 - **Pantalla nueva en `/consulta-precios`** para responder «¿cuánto está

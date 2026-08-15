@@ -3,7 +3,7 @@ import { Alert, Badge, Button, Card, LoadingBlock, PageHeader, Select, Spinner }
 import { useProduct } from "@/features/products/api";
 import { usePriceLists } from "@/features/sales/api";
 import { getApiErrorMessage } from "@/lib/api";
-import { formatMoney, formatQuantity, toNumber } from "@/lib/format";
+import { formatMoney, formatQuantityWithUnit, toNumber } from "@/lib/format";
 import { useDebouncedValue, useDocumentTitle } from "@/lib/hooks";
 import { fetchProductByCode, useAvailableStock, useProductSearch } from "./api";
 import type { PlantDetail, ProductDetail } from "@/features/products/types";
@@ -12,17 +12,6 @@ import type { PlantDetail, ProductDetail } from "@/features/products/types";
 interface Elegido {
   id: number;
   sku: string;
-}
-
-/**
- * Plural del nombre de la unidad: unidad → unidades, bolsa → bolsas. Las
- * abreviaturas (kg, m2) se dejan como están.
- */
-function unidadEnPlural(unit: string, cantidad: number): string {
-  if (cantidad === 1) return unit;
-  if (/[aeiouáéíóú]$/i.test(unit)) return `${unit}s`;
-  if (/[a-zñáéíóú]{3,}$/i.test(unit)) return `${unit}es`;
-  return unit;
 }
 
 /** Datos de la ficha botánica que sirven en el mostrador. */
@@ -128,7 +117,7 @@ function ResultadoDeConsulta({
           <Badge tone={sinStock ? "warning" : "success"}>
             {sinStock
               ? "Sin stock"
-              : `${formatQuantity(stockDisponible)} ${unidadEnPlural(producto.unit, stockDisponible)}`}
+              : formatQuantityWithUnit(stockDisponible, producto.unit)}
           </Badge>
         )}
       </div>
