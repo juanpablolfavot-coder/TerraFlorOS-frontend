@@ -7,6 +7,8 @@ import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { CustomerDetailPage } from "@/features/customers/CustomerDetailPage";
 import { CustomersPage } from "@/features/customers/CustomersPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { InventoryPage } from "@/features/inventory/InventoryPage";
+import { InventoryProductPage } from "@/features/inventory/InventoryProductPage";
 import { PriceLookupPage } from "@/features/prices/PriceLookupPage";
 import { ProductDetailPage } from "@/features/products/ProductDetailPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
@@ -28,7 +30,6 @@ import { PERMISSIONS, RequireAuth, RequirePermission } from "@/features/auth";
 import { ForbiddenPage, NotFoundPage } from "@/pages/ErrorPages";
 import { HomeRedirect } from "@/pages/HomeRedirect";
 import { LoginPage } from "@/pages/LoginPage";
-import { PlaceholderPage } from "@/pages/PlaceholderPage";
 
 /**
  * Cada módulo va detrás del mismo permiso que exige el backend. Es solo
@@ -101,22 +102,11 @@ export function AppRoutes() {
             <Route path="categorias" element={<CategoriesPage />} />
           </Route>
 
+          {/* Ver el inventario pide stock.view; ajustar y regularizar
+              exigen stock.adjust y se ocultan con <Can>. */}
           <Route element={<RequirePermission permission={PERMISSIONS.STOCK_VIEW} />}>
-            <Route
-              path="inventario"
-              element={
-                <PlaceholderPage
-                  title="Inventario"
-                  description="Stock por lote, movimientos y ajustes."
-                  next={[
-                    "Stock de un producto por lote y depósito (GET /api/inventory/products/:id)",
-                    "Historial de movimientos con filtros (GET /api/stock-movements)",
-                    "Ajustes de stock para quien tenga stock.adjust",
-                    "Registro de pérdidas y cuarentena (stock.register_loss)",
-                  ]}
-                />
-              }
-            />
+            <Route path="inventario" element={<InventoryPage />} />
+            <Route path="inventario/:id" element={<InventoryProductPage />} />
           </Route>
 
           <Route

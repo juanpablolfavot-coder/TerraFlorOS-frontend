@@ -71,6 +71,7 @@ src/
     categories/          Árbol de categorías
     customers/           Clientes, direcciones y cuenta corriente
     dashboard/           Panel del día
+    inventory/           Inventario: stock por lote, movimientos y ajustes
     prices/              Consulta de precios de mostrador
     products/            Catálogo: lista, ficha, precios y códigos
     purchases/           Compras, recepción y productos a reponer
@@ -85,7 +86,7 @@ src/
     format.ts            Dinero, cantidades y fechas en es-AR
     queryClient.ts       Configuración de TanStack Query
     hooks.ts             useDebouncedValue, useDocumentTitle
-  pages/                 Login, 404, 403, placeholders
+  pages/                 Login, 404 y 403
 ```
 
 ---
@@ -201,9 +202,13 @@ Implementado:
   cambio de contraseña y editor de permisos individuales sobre el rol
 - **Configuración**: las settings del sistema agrupadas, con el interruptor
   de «permitir vender sin stock» explicado en criollo
+- **Inventario**: stock disponible por producto con filtros y atajo a los
+  sobrevendidos, detalle con lotes (incluido el de sobreventa) y libro de
+  movimientos, ajustes manuales de entrada y salida, y regularización de
+  sobreventa
 
-Pendiente (las rutas y los permisos ya existen, falta la interfaz):
-Inventario.
+No quedan módulos en placeholder: todas las rutas del menú tienen su
+pantalla.
 
 ---
 
@@ -224,6 +229,19 @@ Detalles del contrato que conviene tener presentes:
 - **Leer clientes acepta `sales.create` o `customers.manage`** (mismo criterio
   que la caja): el POS necesita buscar y elegir cliente al facturar. Crear,
   editar, borrar y tocar direcciones exige `customers.manage`
+- **Inventario:** `GET /api/inventory/overview` devuelve el disponible por
+  producto pero **no la categoría** de cada fila (se puede filtrar por
+  `categoryId`, no mostrarla). `GET /api/inventory/products/:id` trae los
+  lotes con `currentQty != 0` —los negativos **también**, que son los de
+  sobreventa— de **todas las sucursales**, y sus totales
+- **El ajuste no devuelve el stock resultante**: `POST
+  /api/inventory/adjustments` responde `{ productId, branchId, applied }`
+  con lo que hizo en cada lote, así que la pantalla vuelve a leer el detalle
+  en vez de calcular el disponible nuevo por su cuenta
+- **Una entrada cancela primero la sobreventa**: si el producto arrastra
+  deuda, la entrada la lleva hacia cero y recién el excedente crea un lote
+  nuevo. `POST /api/inventory/products/:id/settle-oversold` es el atajo que
+  carga la deuda exacta (409 si no hay deuda)
 - **El cliente de la venta es opcional**, pero si viaja `customerId` el
   backend factura con la lista de precios asignada a ese cliente. Por eso el
   POS cambia de lista al elegirlo: mandar precios de otra lista haría que su

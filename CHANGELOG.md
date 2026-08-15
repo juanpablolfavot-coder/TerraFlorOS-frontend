@@ -1,5 +1,56 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.16.0] — Inventario
+
+- **Inventario en `/inventario`** (permiso `stock.view`): el disponible por
+  producto —que ya descuenta lo reservado—, cuántos lotes lo componen, el
+  mínimo definido y el estado en una palabra: sobrevendido, sin stock, bajo
+  mínimo o en stock. Los negativos van en rojo
+- **Atajo «Solo sobrevendidos»** arriba de todo, además del filtro por
+  estado de stock (con stock / sin stock / sobrevendidos). Búsqueda por
+  nombre, SKU o código interno, y filtro por categoría
+- **Detalle del producto** en `/inventario/:id`: totales (en lotes,
+  reservado y disponible) y la tabla de lotes con código, sucursal,
+  ubicación, fecha de ingreso, cantidad y estado sanitario. El **lote de
+  sobreventa** aparece marcado y en negativo, que es justamente lo que hay
+  que ver
+- **Movimientos del producto**: el libro mayor con fecha, tipo, cantidad con
+  signo, saldo del lote antes y después, lote, motivo y quién lo hizo, con
+  filtro por tipo y paginado
+- **Ajustar stock** (permiso `stock.adjust`): entrada o salida, cantidad,
+  motivo obligatorio, notas y costo unitario opcional en las entradas.
+  Pide confirmación mostrando el disponible actual y el que va a quedar, y
+  al terminar muestra **el stock resultante ya releído del servidor** más el
+  detalle de qué hizo con cada lote
+- **Regularizar sobreventa**: cuando el producto arrastra deuda, un aviso en
+  rojo dice cuánto se debe y el botón carga exactamente esa cantidad,
+  dejando el lote de sobreventa en cero
+- Sin `stock.adjust` la pantalla es de solo lectura: no aparece ningún botón
+  de acción. Sin `products.view_cost` no viajan ni se muestran costos ni
+  valorizado, ni en la lista ni en los lotes ni en los movimientos
+- **Ya no queda ningún placeholder**: se eliminó `PlaceholderPage`, que era
+  la pantalla provisoria de los módulos sin hacer
+
+### Sobre el contrato del backend
+
+- El overview **no devuelve la categoría** de cada producto: se puede
+  filtrar por ella, pero no hay columna de categoría (mostrarla obligaría a
+  pedir el catálogo aparte)
+- El ajuste responde `{ productId, branchId, applied }` y **no** el stock
+  resultante, así que la pantalla vuelve a leer el detalle en vez de
+  calcularlo. Por eso el diálogo dice «Actualizando…» un instante
+- Una **entrada cancela primero la deuda de sobreventa** y recién el
+  excedente crea un lote `SKU-AJUSTE-AAAAMMDD-X`. El detalle de la respuesta
+  lo explica en pantalla: sin eso parecería que la mercadería «se perdió»
+- Las salidas descuentan por FIFO y respetan `stock.allow_negative`: si la
+  setting está apagada, el backend responde 409 con lo pedido y lo
+  disponible, y así se muestra
+- El detalle de un producto **no filtra por sucursal**: trae los lotes de
+  todas y los totales las suman. Se aclara debajo de la tabla
+- Leer las categorías exige `products.view`, que no es el mismo permiso que
+  el inventario: sin él, el filtro por categoría directamente no se pide ni
+  se muestra
+
 ## [0.15.0] — Historial de cajas
 
 - **Historial en `/caja/historial`**: los turnos, más reciente primero, con

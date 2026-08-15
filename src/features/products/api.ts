@@ -39,9 +39,15 @@ export function useProducts(query: ProductsQuery) {
   });
 }
 
-export function useCategoryTree() {
+/**
+ * Árbol de categorías. Leerlo exige `products.view`: quien entra a una
+ * pantalla con otro permiso (por ejemplo inventario con `stock.view`)
+ * debe pasar `enabled = false` para no pedir un 403 al pedo.
+ */
+export function useCategoryTree(enabled = true) {
   return useQuery({
     queryKey: categoryKeys.tree,
+    enabled,
     queryFn: async () => {
       const { data } = await api.get<CategoryNode[]>("/api/categories");
       return data;
