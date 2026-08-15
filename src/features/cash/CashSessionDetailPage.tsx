@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
   Badge,
@@ -26,6 +26,7 @@ import { CashMovementsTable } from "./CashMovementsTable";
 export function CashSessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const sessionId = Number(id);
+  const navigate = useNavigate();
 
   const detalle = useSessionDetail(sessionId);
 
@@ -50,6 +51,15 @@ export function CashSessionDetailPage() {
 
   const { session, summary, movements, sales } = detalle.data;
   const abierta = session.isOpen;
+
+  /**
+   * Ventas del turno. El detalle NO trae el agregado `sales` dentro de
+   * `session` (eso es del listado): se cuenta acá desde el array, con el
+   * mismo criterio que usa el backend en el listado — solo las
+   * COMPLETED, porque una anulada ya no es plata del turno.
+   */
+  const completadas = sales.filter((venta) => venta.status !== "VOIDED");
+  const vendido = completadas.reduce((suma, venta) => suma + toNumber(venta.total), 0);
 
   const dato = (etiqueta: string, valor: string, secundario?: string) => (
     <div className="space-y-1">
@@ -86,7 +96,7 @@ export function CashSessionDetailPage() {
             abierta ? "En curso" : (session.closedBy?.fullName ?? "—"),
             abierta ? undefined : formatDateTime(session.closedAt)
           )}
-          {dato("Ventas del turno", `${formatNumber(session.sales.count)}`, formatMoney(session.sales.total))}
+          {dato("Ventas del turno", formatNumber(completadas.length), formatMoney(vendido))}
           {dato("Movimientos", formatNumber(summary.movementsCount))}
         </dl>
       </Card>
@@ -204,7 +214,7 @@ export function CashSessionDetailPage() {
         <div className="p-6 sm:p-8">
           <CardHeader
             title="Ventas del turno"
-            description="En orden cronológico, para ver a qué hora se vendió."
+            description="En orden cronológico. Tocá una venta para verla o reimprimir su comprobante."
           />
         </div>
 
@@ -226,7 +236,7 @@ export function CashSessionDetailPage() {
                 const vuelto = toNumber(venta.changeGiven);
 
                 return (
-                  <TR key={venta.id}>
+                  <TR key={venta.id} interactive onClick={() => navigate(`/ventas/${venta.id}`)}>
                     <TD className="text-stone-500">{formatDateTime(venta.createdAt)}</TD>
                     <TD className="font-mono text-xs text-stone-600">
                       {venta.number}

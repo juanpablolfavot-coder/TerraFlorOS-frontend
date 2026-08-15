@@ -12,12 +12,14 @@ import {
   THead,
   TR,
 } from "@/components/ui";
+import { useNavigate } from "react-router-dom";
 import { useSales } from "@/features/sales/api";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
 /** Ventas asociadas al cliente (`GET /api/sales?customerId=`). */
 export function CustomerSalesCard({ customerId }: { customerId: number }) {
+  const navigate = useNavigate();
   const ventas = useSales({ customerId, pageSize: 20 });
 
   return (
@@ -52,7 +54,7 @@ export function CustomerSalesCard({ customerId }: { customerId: number }) {
           </THead>
           <TBody>
             {(ventas.data?.items ?? []).map((venta) => (
-              <TR key={venta.id}>
+              <TR key={venta.id} interactive onClick={() => navigate(`/ventas/${venta.id}`)}>
                 <TD className="font-mono text-xs text-stone-500">
                   {venta.number}
                   {venta.status === "VOIDED" && (
@@ -62,7 +64,7 @@ export function CustomerSalesCard({ customerId }: { customerId: number }) {
                   )}
                 </TD>
                 <TD className="text-stone-600">{formatDateTime(venta.createdAt)}</TD>
-                <TD className="text-stone-500">{venta._count.items}</TD>
+                <TD className="text-stone-500">{venta._count?.items ?? "—"}</TD>
                 <TD align="right" numeric className="font-medium text-stone-900">
                   {formatMoney(venta.total)}
                 </TD>

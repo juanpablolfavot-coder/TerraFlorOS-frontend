@@ -192,10 +192,10 @@ export function CashHistoryPage() {
                   </TD>
 
                   <TD align="right" numeric className="text-stone-700">
-                    {formatMoney(sesion.sales.total)}
+                    {formatMoney(sesion.sales?.total)}
                     <span className="block text-xs text-stone-400">
-                      {formatNumber(sesion.sales.count)}{" "}
-                      {sesion.sales.count === 1 ? "venta" : "ventas"}
+                      {formatNumber(sesion.sales?.count)}{" "}
+                      {sesion.sales?.count === 1 ? "venta" : "ventas"}
                     </span>
                   </TD>
 

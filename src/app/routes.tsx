@@ -26,6 +26,8 @@ import { RestockPage } from "@/features/purchases/RestockPage";
 import { SupplierDetailPage } from "@/features/suppliers/SupplierDetailPage";
 import { SuppliersPage } from "@/features/suppliers/SuppliersPage";
 import { PosPage } from "@/features/sales/PosPage";
+import { SaleDetailPage } from "@/features/sales/SaleDetailPage";
+import { SalePrintPage } from "@/features/sales/SalePrintPage";
 import { PERMISSIONS, RequireAuth, RequirePermission } from "@/features/auth";
 import { ForbiddenPage, NotFoundPage } from "@/pages/ErrorPages";
 import { HomeRedirect } from "@/pages/HomeRedirect";
@@ -42,9 +44,10 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<RequireAuth />}>
-        {/* Fuera del layout: el comprobante se imprime sin menú ni barra */}
+        {/* Fuera del layout: los comprobantes se imprimen sin menú ni barra */}
         <Route element={<RequirePermission permission={PERMISSIONS.SALES_CREATE} />}>
           <Route path="presupuestos/:id/comprobante" element={<QuotePrintPage />} />
+          <Route path="ventas/:id/comprobante" element={<SalePrintPage />} />
         </Route>
 
         <Route element={<AppLayout />}>
@@ -57,6 +60,8 @@ export function AppRoutes() {
 
           <Route element={<RequirePermission permission={PERMISSIONS.SALES_CREATE} />}>
             <Route path="ventas" element={<PosPage />} />
+            {/* Detalle de una venta ya hecha: desde acá se reimprime */}
+            <Route path="ventas/:id" element={<SaleDetailPage />} />
             {/* Presupuestar pide el mismo permiso que vender */}
             <Route path="presupuestos" element={<QuotesPage />} />
             <Route path="presupuestos/nuevo" element={<QuoteFormPage />} />

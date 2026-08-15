@@ -18,13 +18,30 @@ import {
 import { useAuth } from "@/features/auth";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatMoney, formatNumber, formatQuantity } from "@/lib/format";
+import { comoListaDeObjetos } from "@/lib/safe";
 import { useDashboardPlants, useDashboardStock, useDashboardToday } from "./api";
 
+/**
+ * Panel del día.
+ *
+ * Es la pantalla de arranque, así que ninguna tarjeta puede tumbarla: si
+ * un endpoint responde vacío o con una forma distinta a la esperada, se
+ * muestra en cero. Por eso cada rama del JSON se lee con `?.` hasta el
+ * final (los formateadores ya traducen `undefined` a 0) y las listas
+ * pasan por `comoListaDeObjetos`, que además descarta elementos nulos.
+ */
 export function DashboardPage() {
   const { user } = useAuth();
   const today = useDashboardToday();
   const stock = useDashboardStock();
   const plants = useDashboardPlants();
+
+  const ventas = today.data?.sales;
+  const cobros = comoListaDeObjetos(today.data?.paymentsByMethod);
+  const conteos = stock.data?.counts;
+  const paraReponer = comoListaDeObjetos(stock.data?.criticalProducts);
+  const cuarentena = plants.data?.quarantine;
+  const perdidas = plants.data?.lossesThisMonth;
 
   const isLoading = today.isPending || stock.isPending || plants.isPending;
   const error = today.error ?? stock.error ?? plants.error;
@@ -53,27 +70,18 @@ export function DashboardPage() {
             </h2>
 
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard
-                label="Facturación"
-                value={formatMoney(today.data?.sales.revenue)}
-                tone="brand"
-              />
-              <StatCard label="Tickets" value={formatNumber(today.data?.sales.tickets)} />
-              <StatCard
-                label="Ticket promedio"
-                value={formatMoney(today.data?.sales.averageTicket)}
-              />
-              {today.data?.sales.margin !== undefined ? (
+              <StatCard label="Facturación" value={formatMoney(ventas?.revenue)} tone="brand" />
+              <StatCard label="Tickets" value={formatNumber(ventas?.tickets)} />
+              <StatCard label="Ticket promedio" value={formatMoney(ventas?.averageTicket)} />
+              {/* El margen solo viaja con products.view_cost */}
+              {ventas?.margin !== undefined ? (
                 <StatCard
                   label="Margen"
-                  value={formatMoney(today.data.sales.margin)}
-                  hint={`CMV ${formatMoney(today.data.sales.cmv)}`}
+                  value={formatMoney(ventas.margin)}
+                  hint={`CMV ${formatMoney(ventas.cmv)}`}
                 />
               ) : (
-                <StatCard
-                  label="Unidades vendidas"
-                  value={formatQuantity(today.data?.sales.units)}
-                />
+                <StatCard label="Unidades vendidas" value={formatQuantity(ventas?.units)} />
               )}
             </div>
 
@@ -86,7 +94,7 @@ export function DashboardPage() {
                   />
                 </div>
 
-                {today.data && today.data.paymentsByMethod.length > 0 ? (
+                {cobros.length > 0 ? (
                   <Table>
                     <THead>
                       <TR>
@@ -96,7 +104,7 @@ export function DashboardPage() {
                       </TR>
                     </THead>
                     <TBody>
-                      {today.data.paymentsByMethod.map((method) => (
+                      {cobros.map((method) => (
                         <TR key={method.paymentMethodId}>
                           <TD>
                             <span className="flex items-center gap-2">
@@ -141,17 +149,18 @@ export function DashboardPage() {
                   <div className="space-y-1.5">
                     <dt className="text-sm text-stone-500">En cuarentena</dt>
                     <dd className="tabular text-2xl font-semibold text-amber-600">
-                      {formatQuantity(plants.data?.quarantine.quantity)}
+                      {formatQuantity(cuarentena?.quantity)}
                     </dd>
                   </div>
                   <div className="space-y-1.5">
                     <dt className="text-sm text-stone-500">Pérdidas del mes</dt>
                     <dd className="tabular text-2xl font-semibold text-red-600">
-                      {formatQuantity(plants.data?.lossesThisMonth.units)}
+                      {formatQuantity(perdidas?.units)}
                     </dd>
-                    {plants.data?.lossesThisMonth.cost !== undefined && (
+                    {/* El costo de las pérdidas también pide products.view_cost */}
+                    {perdidas?.cost !== undefined && (
                       <p className="text-sm text-stone-400">
-                        {formatMoney(plants.data.lossesThisMonth.cost)} en costo
+                        {formatMoney(perdidas.cost)} en costo
                       </p>
                     )}
                   </div>
@@ -169,16 +178,16 @@ export function DashboardPage() {
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 label="Productos activos"
-                value={formatNumber(stock.data?.counts.totalProducts)}
+                value={formatNumber(conteos?.totalProducts)}
               />
               <StatCard
                 label="Bajo mínimo"
-                value={formatNumber(stock.data?.counts.critical)}
+                value={formatNumber(conteos?.critical)}
                 tone="warning"
               />
               <StatCard
                 label="Sin stock"
-                value={formatNumber(stock.data?.counts.outOfStock)}
+                value={formatNumber(conteos?.outOfStock)}
                 tone="danger"
               />
               {stock.data?.inventoryValueAtCost !== undefined ? (
@@ -188,7 +197,7 @@ export function DashboardPage() {
                   hint={`${formatNumber(stock.data.batchesWithStock)} lotes con stock`}
                 />
               ) : (
-                <StatCard label="Con exceso" value={formatNumber(stock.data?.counts.excess)} />
+                <StatCard label="Con exceso" value={formatNumber(conteos?.excess)} />
               )}
             </div>
 
@@ -208,7 +217,7 @@ export function DashboardPage() {
                 />
               </div>
 
-              {stock.data && stock.data.criticalProducts.length > 0 ? (
+              {paraReponer.length > 0 ? (
                 <Table>
                   <THead>
                     <TR>
@@ -219,7 +228,7 @@ export function DashboardPage() {
                     </TR>
                   </THead>
                   <TBody>
-                    {stock.data.criticalProducts.map((product) => (
+                    {paraReponer.map((product) => (
                       <TR key={product.id}>
                         <TD className="font-mono text-xs text-stone-500">{product.sku}</TD>
                         <TD className="font-medium text-stone-900">{product.name}</TD>

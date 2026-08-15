@@ -64,6 +64,7 @@ src/
   components/
     icons.tsx            Iconos propios (SVG)
     layout/              AppLayout, Sidebar, Topbar
+    receipt/             Hoja de comprobante (presupuesto y venta)
     ui/                  Button, Input, Card, Table, Spinner, …
   features/
     auth/                Contexto de sesión, permisos y guards
@@ -84,6 +85,8 @@ src/
     api.ts               Instancia de Axios + refresh de sesión
     session.ts           Access token en memoria
     format.ts            Dinero, cantidades y fechas en es-AR
+    print.ts             Imprimir y "descargar PDF" de los comprobantes
+    safe.ts              Lecturas defensivas de respuestas del backend
     queryClient.ts       Configuración de TanStack Query
     hooks.ts             useDebouncedValue, useDocumentTitle
   pages/                 Login, 404 y 403
@@ -175,7 +178,10 @@ Implementado:
 - **Productos**: listado con búsqueda, filtros por tipo/categoría/estado,
   precio y stock disponible por fila, y paginación
 - **Ventas (POS)**: buscador que escanea y busca, carrito, cliente opcional,
-  pago mixto con vuelto en efectivo y cobro
+  pago mixto con vuelto en efectivo (medio de pago por botones y atajos de
+  billetes) y cobro, con comprobante para imprimir o guardar en PDF
+- **Detalle de una venta**: qué se cobró, con qué se pagó y cuánto vuelto se
+  dio, con reimpresión del comprobante desde cualquier venta pasada
 - **Caja**: apertura, resumen del turno en vivo, detalle completo de
   movimientos (manuales y automáticos) y cierre con arqueo
 - **Historial de cajas**: turnos cerrados y abiertos con su diferencia de
@@ -202,6 +208,9 @@ Implementado:
   cambio de contraseña y editor de permisos individuales sobre el rol
 - **Configuración**: las settings del sistema agrupadas, con el interruptor
   de «permitir vender sin stock» explicado en criollo
+- **Comprobantes**: presupuesto y venta comparten la misma hoja imprimible.
+  Son documentos de cara al cliente: sin costos, sin márgenes y sin el nombre
+  de la lista de precios con la que se facturó
 - **Inventario**: stock disponible por producto con filtros y atajo a los
   sobrevendidos, detalle con lotes (incluido el de sobreventa) y libro de
   movimientos, ajustes manuales de entrada y salida, y regularización de
@@ -229,6 +238,13 @@ Detalles del contrato que conviene tener presentes:
 - **Leer clientes acepta `sales.create` o `customers.manage`** (mismo criterio
   que la caja): el POS necesita buscar y elegir cliente al facturar. Crear,
   editar, borrar y tocar direcciones exige `customers.manage`
+- **El detalle de un turno de caja NO trae `session.sales`**: ese agregado
+  existe solo en las filas del listado (`GET /api/cash/sessions`). En el
+  detalle las ventas vienen como array aparte —con las anuladas incluidas— y
+  los totales de efectivo, en `summary`
+- **`GET /api/sales/:id`** devuelve la venta completa, incluida `priceList`
+  y (con `products.view_cost`) `costTotal` y `margin`. Los tres son datos
+  internos: van en la pantalla de la venta, nunca en el comprobante
 - **Inventario:** `GET /api/inventory/overview` devuelve el disponible por
   producto pero **no la categoría** de cada fila (se puede filtrar por
   `categoryId`, no mostrarla). `GET /api/inventory/products/:id` trae los

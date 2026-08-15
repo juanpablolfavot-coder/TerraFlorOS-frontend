@@ -1,4 +1,5 @@
-import { Alert, Badge, Button, Select } from "@/components/ui";
+import { Alert, Badge, Button } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format";
 import { montoATexto, montoDe, sugerenciasDeEfectivo, type PaymentTotals } from "./paymentRules";
 import type { PaymentLine, PaymentMethod } from "./types";
@@ -12,12 +13,68 @@ const AMOUNT_INPUT =
   "ring-1 ring-stone-300 ring-inset placeholder:text-stone-300 " +
   "focus:ring-2 focus:ring-brand-600 focus:outline-none";
 
-/** Fila de pago: método arriba, monto abajo y con aire. */
+/** Cartel de atajo de efectivo: etiqueta chica arriba, importe abajo. */
+function AtajoDeMonto({
+  etiqueta,
+  monto,
+  destacado = false,
+  onClick,
+}: {
+  etiqueta: string;
+  monto: number;
+  destacado?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${etiqueta} ${formatMoney(monto)}`}
+      className={cn(
+        "rounded-lg px-2 py-2.5 text-center transition-colors",
+        destacado
+          ? "bg-brand-50 ring-1 ring-brand-200 ring-inset hover:bg-brand-100"
+          : "bg-white ring-1 ring-stone-300 ring-inset hover:bg-stone-50"
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "block text-[11px] font-medium tracking-wide uppercase",
+          destacado ? "text-brand-700" : "text-stone-400"
+        )}
+      >
+        {etiqueta}
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          // 13px y no 14: con tres carteles en la columna del cobro, un
+          // importe de cinco cifras rozaba el borde
+          "tabular block text-[13px] font-semibold whitespace-nowrap",
+          destacado ? "text-brand-800" : "text-stone-800"
+        )}
+      >
+        {formatMoney(monto)}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Fila de pago: método, monto y atajos.
+ *
+ * El método se elige con cartelitos y no con un desplegable: en el
+ * mostrador se cobra con un toque, sin abrir una lista y buscar la
+ * opción. Cada fila tiene los suyos, así el pago mixto sigue funcionando
+ * igual.
+ */
 function PaymentRow({
   pago,
   metodo,
   methods,
   falta,
+  numero,
   sePuedeQuitar,
   onChange,
   onRemove,
@@ -26,6 +83,7 @@ function PaymentRow({
   metodo: PaymentMethod | undefined;
   methods: PaymentMethod[];
   falta: number;
+  numero: number;
   sePuedeQuitar: boolean;
   onChange: (key: string, patch: Partial<PaymentLine>) => void;
   onRemove: (key: string) => void;
@@ -35,33 +93,16 @@ function PaymentRow({
 
   return (
     <div className="space-y-3 rounded-xl p-4 ring-1 ring-stone-200 ring-inset">
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <Select
-            aria-label="Método de pago"
-            value={pago.paymentMethodId ?? ""}
-            disabled={methods.length === 0}
-            onChange={(event) =>
-              onChange(pago.key, {
-                paymentMethodId: event.target.value === "" ? null : Number(event.target.value),
-              })
-            }
-          >
-            <option value="">Elegí el método…</option>
-            {methods.map((opcion) => (
-              <option key={opcion.id} value={opcion.id}>
-                {opcion.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {sePuedeQuitar && (
+      {sePuedeQuitar && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-medium tracking-wide text-stone-500 uppercase">
+            Pago {numero}
+          </p>
           <button
             type="button"
             onClick={() => onRemove(pago.key)}
-            aria-label="Quitar pago"
-            className="rounded-md p-2 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            aria-label={`Quitar el pago ${numero}`}
+            className="rounded-md p-1.5 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <svg
               viewBox="0 0 24 24"
@@ -75,7 +116,31 @@ function PaymentRow({
               <path d="m6 6 12 12M18 6 6 18" />
             </svg>
           </button>
-        )}
+        </div>
+      )}
+
+      <div role="group" aria-label="Método de pago" className="grid grid-cols-2 gap-2">
+        {methods.map((opcion) => {
+          const elegido = opcion.id === pago.paymentMethodId;
+
+          return (
+            <button
+              key={opcion.id}
+              type="button"
+              aria-pressed={elegido}
+              onClick={() => onChange(pago.key, { paymentMethodId: opcion.id })}
+              className={cn(
+                "flex min-h-11 items-center justify-center rounded-lg px-3 py-2",
+                "text-sm leading-tight font-medium transition-colors",
+                elegido
+                  ? "bg-brand-600 text-white shadow-xs ring-1 ring-brand-600 ring-inset"
+                  : "bg-white text-stone-700 ring-1 ring-stone-300 ring-inset hover:bg-stone-50"
+              )}
+            >
+              {opcion.name}
+            </button>
+          );
+        })}
       </div>
 
       <div className="relative">
@@ -97,24 +162,24 @@ function PaymentRow({
       </div>
 
       {sugerencias.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onChange(pago.key, { amount: montoATexto(falta) })}
-          >
-            Justo {formatMoney(falta)}
-          </Button>
-          {sugerencias.map((monto) => (
-            <Button
-              key={monto}
-              variant="ghost"
-              size="sm"
-              onClick={() => onChange(pago.key, { amount: montoATexto(monto) })}
-            >
-              {formatMoney(monto)}
-            </Button>
-          ))}
+        <div className="space-y-2">
+          <p className="text-xs text-stone-500">¿Con cuánto paga?</p>
+          <div className="grid grid-cols-3 gap-2">
+            <AtajoDeMonto
+              etiqueta="Justo"
+              monto={falta}
+              destacado
+              onClick={() => onChange(pago.key, { amount: montoATexto(falta) })}
+            />
+            {sugerencias.map((monto) => (
+              <AtajoDeMonto
+                key={monto}
+                etiqueta="Paga con"
+                monto={monto}
+                onClick={() => onChange(pago.key, { amount: montoATexto(monto) })}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -157,7 +222,7 @@ export function PaymentPanel({
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        {payments.map((pago) => {
+        {payments.map((pago, indice) => {
           const metodo = methods.find((m) => m.id === pago.paymentMethodId);
           // Lo que falta SIN contar esta fila: es lo que tiene que cubrir
           const aporte = metodo === undefined ? 0 : montoDe(pago.amount);
@@ -170,6 +235,7 @@ export function PaymentPanel({
               metodo={metodo}
               methods={methods}
               falta={faltaDeLaFila}
+              numero={indice + 1}
               sePuedeQuitar={payments.length > 1}
               onChange={onChange}
               onRemove={onRemove}

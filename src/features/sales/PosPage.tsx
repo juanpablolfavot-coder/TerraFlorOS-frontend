@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Alert,
   Badge,
@@ -448,15 +449,31 @@ export function PosPage() {
         title="Venta registrada"
         description={`Comprobante ${ventaHecha?.number ?? ""}`}
         footer={
-          <Button
-            onClick={() => {
-              setVentaHecha(null);
-              enfocarBuscador();
-            }}
-            autoFocus
-          >
-            Nueva venta
-          </Button>
+          <>
+            {/* El comprobante se abre en otra pestaña para no perder el
+                POS; también se puede reimprimir después desde la venta. */}
+            <Button
+              variant="secondary"
+              onClick={() =>
+                window.open(
+                  `/ventas/${ventaHecha?.id}/comprobante?accion=imprimir`,
+                  "_blank",
+                  "noopener"
+                )
+              }
+            >
+              Imprimir comprobante
+            </Button>
+            <Button
+              onClick={() => {
+                setVentaHecha(null);
+                enfocarBuscador();
+              }}
+              autoFocus
+            >
+              Nueva venta
+            </Button>
+          </>
         }
       >
         <p className="tabular text-3xl font-semibold text-brand-700">
@@ -485,7 +502,15 @@ export function PosPage() {
         )}
 
         <p className="mt-4 text-sm text-stone-500">
-          El carrito quedó vacío y el foco vuelve al buscador.
+          El carrito quedó vacío y el foco vuelve al buscador.{" "}
+          {ventaHecha !== null && (
+            <Link
+              to={`/ventas/${ventaHecha.id}`}
+              className="font-medium text-brand-700 hover:text-brand-800"
+            >
+              Ver la venta
+            </Link>
+          )}
         </p>
       </Modal>
     </div>

@@ -16,6 +16,7 @@ import {
   TR,
 } from "@/components/ui";
 import { getApiErrorMessage } from "@/lib/api";
+import { comoListaDeObjetos } from "@/lib/safe";
 import { formatNumber, formatQuantity } from "@/lib/format";
 import { useDocumentTitle } from "@/lib/hooks";
 import { useRestockList } from "./api";
@@ -48,7 +49,12 @@ export function RestockPage() {
     );
   }
 
-  const { pending, toRestock } = datos.data!;
+  // Sin `!` ni suponer las ramas: si el endpoint devuelve algo parcial,
+  // las tarjetas muestran cero en vez de tumbar la pantalla.
+  const pending = datos.data?.pending;
+  const toRestock = datos.data?.toRestock;
+  const aReponer = comoListaDeObjetos(toRestock?.products);
+  const porEstado = comoListaDeObjetos(pending?.byStatus);
 
   return (
     <div className="space-y-8">
@@ -65,17 +71,17 @@ export function RestockPage() {
       <div className="grid gap-5 sm:grid-cols-2">
         <StatCard
           label="Bajo stock mínimo"
-          value={formatNumber(toRestock.count)}
-          tone={toRestock.count > 0 ? "warning" : "default"}
+          value={formatNumber(toRestock?.count)}
+          tone={(toRestock?.count ?? 0) > 0 ? "warning" : "default"}
           hint="Productos que ya tocaron su mínimo."
         />
         <StatCard
           label="Órdenes en curso"
-          value={formatNumber(pending.total)}
+          value={formatNumber(pending?.total)}
           hint={
-            pending.byStatus.length === 0
+            porEstado.length === 0
               ? "Sin compras pendientes."
-              : pending.byStatus
+              : porEstado
                   .map(
                     (e) =>
                       `${e.count} ${PURCHASE_STATUS_LABEL[e.status as PurchaseStatus] ?? e.status}`
@@ -96,7 +102,7 @@ export function RestockPage() {
           />
         </div>
 
-        {toRestock.products.length === 0 ? (
+        {aReponer.length === 0 ? (
           <EmptyState
             title="Nada para reponer"
             description="Ningún producto está por debajo de su stock mínimo."
@@ -113,7 +119,7 @@ export function RestockPage() {
               </TR>
             </THead>
             <TBody>
-              {toRestock.products.map((producto) => {
+              {aReponer.map((producto) => {
                 const faltante = Math.max(producto.minStock - producto.available, 0);
                 return (
                   <TR

@@ -1,5 +1,57 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.17.0] — Comprobantes reimprimibles y cobro más rápido
+
+### Arreglado
+
+- **`Cannot read properties of undefined (reading 'count')`**: lo tiraba el
+  detalle de un turno de caja. `GET /api/cash/sessions/:id` **no** devuelve
+  el agregado `sales` adentro de `session` —eso existe solo en cada fila del
+  LISTADO—; las ventas del turno vienen aparte, como array. El tipo
+  `SessionDetail` reusaba `SessionListItem` tal cual y prometía un campo que
+  el backend nunca manda, así que TypeScript no lo veía venir. Ahora el tipo
+  lleva `Omit<…, "sales">` y la pantalla cuenta las ventas del array,
+  descartando las anuladas (mismo criterio que el listado). Como el error se
+  queda en la consola al navegar, aparecía leyéndose en `/panel`
+- **El panel aguanta datos raros**: cada rama del JSON se lee con `?.` y las
+  listas pasan por un helper que devuelve `[]` (y filtra elementos nulos) si
+  llega algo que no es un array. Si un endpoint responde vacío o cambia de
+  forma, la tarjeta muestra cero en vez de tumbar la pantalla. Mismo criterio
+  en «Productos a reponer», que además dejó de usar `data!`
+
+### Agregado
+
+- **Detalle de una venta** (`/ventas/:id`): productos, pagos, vuelto, cliente,
+  vendedor y estado, con **Imprimir** y **Descargar PDF** del comprobante. Se
+  llega desde el POS al terminar de cobrar, desde las compras de un cliente y
+  desde las ventas de un turno de caja — o sea, se puede **reimprimir una
+  venta pasada**
+- **Comprobante de venta** (`/ventas/:id/comprobante`): el mismo documento
+  que se emite al cobrar, reconstruido desde `GET /api/sales/:id`, así que
+  una reimpresión muestra lo mismo que el ticket original (incluido el vuelto
+  entregado, que queda persistido en la venta)
+- Los botones del detalle abren el comprobante **ya disparando la acción**
+  (`?accion=imprimir` / `?accion=pdf`): reimprimir es un clic, no tres
+- «Descargar PDF» no suma una librería de PDF: usa la impresión del navegador
+  («Guardar como PDF») y le pone al documento el nombre del comprobante, así
+  el archivo sale como `Venta 0001-00000007.pdf`. La pantalla lo aclara
+
+### Cambiado
+
+- **El método de pago se elige con cartelitos**, no con un desplegable: un
+  botón por medio (Efectivo, Transferencia, Débito, Crédito, Billetera), el
+  elegido resaltado. El pago mixto sigue igual — cada línea tiene su botonera
+- **Los atajos de efectivo son carteles prolijos**: «Justo» con el importe
+  exacto (destacado) y los billetes redondos que siguen, alineados en una
+  grilla. Antes eran botones fantasma que se leían todos corridos
+- **El presupuesto impreso ya no dice de qué lista de precios salió.** Que sea
+  minorista o mayorista es interno; el cliente no tiene por qué verlo. El
+  comprobante de venta tampoco lo muestra, ni costos ni márgenes (eso queda
+  en el detalle interno, y el margen solo con `products.view_cost`)
+- El presupuesto y la venta comparten la hoja del comprobante
+  (`ReceiptShell`): mismo encabezado, mismas acciones y las mismas reglas de
+  qué NO se muestra
+
 ## [0.16.0] — Inventario
 
 - **Inventario en `/inventario`** (permiso `stock.view`): el disponible por

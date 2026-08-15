@@ -9,6 +9,7 @@ import type {
   PriceList,
   ProductDetail,
   SaleCreated,
+  SaleDetail,
   SaleListItem,
   SalesQuery,
 } from "./types";
@@ -18,6 +19,7 @@ export const salesKeys = {
   priceLists: ["price-lists"] as const,
   productSearch: (term: string) => ["pos", "product-search", term] as const,
   list: (query: SalesQuery) => ["sales", "list", query] as const,
+  detail: (id: number) => ["sales", "detail", id] as const,
 };
 
 /**
@@ -33,6 +35,22 @@ export function useSales(query: SalesQuery) {
       return data;
     },
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Detalle de una venta. Mismo permiso que el listado (`sales.create`).
+ * Es lo que alimenta la pantalla de la venta y su comprobante, así que
+ * una venta vieja se puede reimprimir tal cual salió.
+ */
+export function useSale(id: number | null) {
+  return useQuery({
+    queryKey: salesKeys.detail(id ?? 0),
+    enabled: id !== null,
+    queryFn: async () => {
+      const { data } = await api.get<SaleDetail>(`/api/sales/${id}`);
+      return data;
+    },
   });
 }
 

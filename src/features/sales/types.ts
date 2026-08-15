@@ -125,6 +125,45 @@ export interface SaleCreated {
 }
 
 /**
+ * `GET /api/sales/:id` — la venta completa, para el detalle y el
+ * comprobante reimpreso.
+ *
+ * Trae lo mismo que la respuesta del POS más el contexto: sucursal,
+ * vendedor, fecha, anulación y la lista de precios con la que se
+ * facturó. OJO con esos dos últimos: `priceList`, `costTotal` y `margin`
+ * son datos INTERNOS y no van en el documento que ve el cliente.
+ */
+export interface SaleDetail extends Omit<SaleCreated, "items" | "payments"> {
+  createdAt: string;
+  notes: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  branch: { id: number; name: string };
+  seller: { id: number; username: string; fullName: string };
+  cashSessionId: number | null;
+  priceList: { id: number; name: string } | null;
+  costTotal?: Decimal;
+  margin?: number;
+  items: Array<{
+    id: number;
+    productId: number;
+    quantity: Decimal;
+    unitPrice: Decimal;
+    discount: Decimal;
+    total: Decimal;
+    unitCost?: Decimal;
+    product: { id: number; sku: string; name: string; unit: string };
+  }>;
+  payments: Array<{
+    id: number;
+    amount: Decimal;
+    reference: string | null;
+    createdAt: string;
+    paymentMethod: { id: number; name: string; affectsCash: boolean };
+  }>;
+}
+
+/**
  * Fila de `GET /api/sales`. `costTotal` y `margin` solo llegan con
  * `products.view_cost`, igual que en el resto del sistema.
  */

@@ -206,9 +206,15 @@ export interface SessionSale {
  * `summary` es el mismo que devuelve `/sessions/current`, así que el
  * desglose por método de pago es AGREGADO del turno: el backend no
  * expone con qué método se pagó cada venta.
+ *
+ * OJO con `session`: acá **no** viene el agregado `sales` que sí trae
+ * cada fila del LISTADO. Las ventas del turno llegan aparte, en el array
+ * `sales` (que incluye las anuladas), y los totales de caja en `summary`.
+ * De ahí el `Omit`: sin él, el tipo prometía un campo que el backend
+ * nunca manda.
  */
 export interface SessionDetail {
-  session: SessionListItem;
+  session: Omit<SessionListItem, "sales">;
   summary: CurrentSession["summary"];
   movements: SessionMovement[];
   sales: SessionSale[];
