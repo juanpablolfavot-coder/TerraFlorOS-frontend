@@ -1,5 +1,46 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.13.0] — Usuarios, roles y permisos
+
+- **Padrón de usuarios** con nombre, usuario, rol, sucursal, último ingreso y
+  estado, con filtros por rol, estado y búsqueda por nombre o usuario. La
+  propia cuenta se marca en la fila
+- **Alta** con nombre, usuario, email, contraseña con confirmación, rol y
+  sucursal. Si el usuario ya existe, el 409 se muestra tal cual lo explica el
+  backend
+- **Edición** de nombre, usuario, email, rol, sucursal y estado
+- **Cambio de contraseña** en su propio diálogo: sobre la cuenta propia pide
+  la contraseña actual (el backend la exige) y sobre la de otro no. En los
+  dos casos avisa que se cierran todas las sesiones abiertas de esa persona
+- **Editor de permisos** agrupado por módulo y plegable, en vez de un muro de
+  casillas. Cada permiso se deja «según el rol», se concede aparte o se
+  revoca, y una etiqueta dice de dónde viene el que está activo. Arriba se ve
+  cuántos permisos efectivos quedan
+- **Baja lógica** con confirmación, avisando que pierde el acceso y se le
+  cierran las sesiones
+
+### Guardas anti-bloqueo
+
+El backend rechaza que alguien se deje afuera del sistema. La pantalla aplica
+las mismas reglas antes de ofrecer la acción, calculadas sobre el rol y los
+overrides igual que allá:
+
+- La casilla «Activo» queda deshabilitada sobre la cuenta propia
+- En el selector de rol, los roles que dejarían a la cuenta propia sin
+  `users.manage` aparecen deshabilitados y dicen por qué
+- El permiso `users.manage` no se puede soltar sobre uno mismo, y si los
+  cambios pendientes igual lo dejarían afuera, el guardado se bloquea con el
+  motivo
+- «Dar de baja» está deshabilitado sobre la cuenta propia
+
+### Sobre el contrato del backend
+
+- `PUT /api/users/:id/permissions` recibe un **array pelado** y reemplaza
+  todos los overrides: siempre se manda la lista completa
+- **No existe un endpoint de sucursales**, así que el selector se arma con
+  las que ya tienen asignadas otros usuarios y lo aclara en el campo
+- `passwordHash` no viaja nunca: ni el listado ni el detalle lo incluyen
+
 ## [0.12.0] — Presupuestos con conversión a venta
 
 - **Lista de presupuestos** con número, cliente (o «Sin cliente»), fecha,

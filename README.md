@@ -75,6 +75,7 @@ src/
     products/            Catálogo: lista, ficha, precios y códigos
     purchases/           Compras, recepción y productos a reponer
     quotes/              Presupuestos y su conversión en venta
+    users/               Usuarios, roles y permisos individuales
     sales/               POS: buscador, carrito y cobro
     suppliers/           Proveedores y su catálogo
   lib/
@@ -192,8 +193,11 @@ Implementado:
   cuenta corriente (solo lectura) y sus compras, más el selector de cliente
   del POS
 
+- **Usuarios**: padrón con filtros, alta con rol y sucursal, edición,
+  cambio de contraseña y editor de permisos individuales sobre el rol
+
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
-Inventario y Usuarios.
+Inventario.
 
 ---
 
@@ -250,6 +254,16 @@ Detalles del contrato que conviene tener presentes:
   venta. Por eso el resumen del turno expone `summary.changeGiven`: el
   efectivo de `salesByPaymentMethod` es el bruto y `expectedCash` es el neto,
   y el vuelto es exactamente la diferencia entre los dos
+- **Usuarios: el backend se protege solo contra el auto-bloqueo.** Rechaza
+  desactivarse a uno mismo, eliminarse, y quitarse `users.manage` (tanto por
+  cambio de rol como por override). La pantalla aplica las mismas reglas
+  antes de ofrecer la acción: son cálculos idénticos sobre el rol y los
+  overrides, no una lista de casos aparte
+- **No hay endpoint de sucursales.** El selector del formulario de usuario se
+  arma con las sucursales que ya tienen asignadas otros usuarios, y lo
+  aclara: no puede ofrecer una recién creada que todavía no tenga gente
+- **`PUT /api/users/:id/permissions` recibe un ARRAY pelado** y reemplaza
+  TODOS los overrides, así que siempre se manda la lista completa
 - **Presupuestos: el vencimiento no es un estado.** El enum tiene `EXPIRED`
   pero ningún código lo escribe: el backend compara `expiresAt` contra su
   reloj y manda el flag `isExpired`. Un presupuesto vencido sigue en

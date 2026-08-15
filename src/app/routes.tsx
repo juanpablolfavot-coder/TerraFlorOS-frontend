@@ -14,6 +14,8 @@ import { QuoteDetailPage } from "@/features/quotes/QuoteDetailPage";
 import { QuoteFormPage } from "@/features/quotes/QuoteFormPage";
 import { QuotePrintPage } from "@/features/quotes/QuotePrintPage";
 import { QuotesPage } from "@/features/quotes/QuotesPage";
+import { UserDetailPage } from "@/features/users/UserDetailPage";
+import { UsersPage } from "@/features/users/UsersPage";
 import { PurchasesPage } from "@/features/purchases/PurchasesPage";
 import { RestockPage } from "@/features/purchases/RestockPage";
 import { SupplierDetailPage } from "@/features/suppliers/SupplierDetailPage";
@@ -137,21 +139,9 @@ export function AppRoutes() {
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE} />}>
-            <Route
-              path="usuarios"
-              element={
-                <PlaceholderPage
-                  title="Usuarios"
-                  description="Altas, roles y permisos individuales."
-                  next={[
-                    "Listado y alta de usuarios (GET/POST /api/users)",
-                    "Asignación de rol (GET /api/roles)",
-                    "Overrides de permisos por usuario (PUT /api/users/:id/permissions)",
-                    "Reseteo de contraseña (POST /api/users/:id/password)",
-                  ]}
-                />
-              }
-            />
+            <Route path="usuarios" element={<UsersPage />} />
+            {/* "nuevo" y :id comparten pantalla, igual que en productos */}
+            <Route path="usuarios/:id" element={<UserDetailPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
