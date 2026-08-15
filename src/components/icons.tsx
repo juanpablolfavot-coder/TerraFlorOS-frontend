@@ -71,6 +71,14 @@ export const IconUsers = (props: IconProps) => (
   </Icon>
 );
 
+/** Configuración: el engranaje de siempre. */
+export const IconSettings = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9 5.3 5.3" />
+  </Icon>
+);
+
 /** Presupuestos: una hoja con renglones y su total. */
 export const IconQuote = (props: IconProps) => (
   <Icon {...props}>

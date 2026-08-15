@@ -77,6 +77,7 @@ src/
     quotes/              Presupuestos y su conversión en venta
     users/               Usuarios, roles y permisos individuales
     sales/               POS: buscador, carrito y cobro
+    settings/            Configuración del sistema
     suppliers/           Proveedores y su catálogo
   lib/
     api.ts               Instancia de Axios + refresh de sesión
@@ -195,6 +196,8 @@ Implementado:
 
 - **Usuarios**: padrón con filtros, alta con rol y sucursal, edición,
   cambio de contraseña y editor de permisos individuales sobre el rol
+- **Configuración**: las settings del sistema agrupadas, con el interruptor
+  de «permitir vender sin stock» explicado en criollo
 
 Pendiente (las rutas y los permisos ya existen, falta la interfaz):
 Inventario.
@@ -254,6 +257,20 @@ Detalles del contrato que conviene tener presentes:
   venta. Por eso el resumen del turno expone `summary.changeGiven`: el
   efectivo de `salesByPaymentMethod` es el bruto y `expectedCash` es el neto,
   y el vuelto es exactamente la diferencia entre los dos
+- **`stock.allow_negative` cambia el comportamiento de la venta.** Con la
+  setting en `true` el backend acepta vender sin stock (queda negativo y se
+  regulariza después) y marca la venta con `oversold`; con `false` responde
+  409 como siempre. El POS la lee para avisar antes de cobrar: aviso ámbar
+  cuando se va a vender en negativo, aviso rojo cuando el backend lo va a
+  rechazar. El bloqueo real lo sigue haciendo el servidor — el stock que
+  conoce la pantalla puede estar desactualizado
+- **Leer `/api/settings` acepta `sales.create` o `settings.manage`**,
+  justamente para que el POS pueda consultarla; escribir exige
+  `settings.manage` y queda auditado
+- **`PATCH /api/settings` recibe un ARRAY pelado** y NO crea claves nuevas:
+  el set lo define el seed. Los valores son siempre string, y valida por
+  clave (`stock.allow_negative` solo `"true"`/`"false"`; redondeo y umbral,
+  números no negativos)
 - **Usuarios: el backend se protege solo contra el auto-bloqueo.** Rechaza
   desactivarse a uno mismo, eliminarse, y quitarse `users.manage` (tanto por
   cambio de rol como por override). La pantalla aplica las mismas reglas

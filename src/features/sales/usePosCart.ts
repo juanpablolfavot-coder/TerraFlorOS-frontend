@@ -65,6 +65,7 @@ export function usePosCart(priceLists: PriceList[]) {
             quantity,
             unitPrice,
             listPrice,
+            availableStock: product.availableStock,
             discount: 0,
             prices: product.prices,
           },

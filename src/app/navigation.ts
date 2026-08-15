@@ -8,6 +8,7 @@ import {
   IconLeaf,
   IconQuote,
   IconSales,
+  IconSettings,
   IconTag,
   IconTruck,
   IconUsers,
@@ -95,6 +96,12 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/proveedores",
     icon: IconBuilding,
     anyOf: [PERMISSIONS.PRODUCTS_VIEW, PERMISSIONS.SUPPLIERS_MANAGE],
+  },
+  {
+    label: "Configuración",
+    to: "/configuracion",
+    icon: IconSettings,
+    anyOf: [PERMISSIONS.SETTINGS_MANAGE],
   },
   {
     label: "Usuarios",

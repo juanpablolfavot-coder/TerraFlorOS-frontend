@@ -33,10 +33,15 @@ export interface ProductPrice {
  * Detalle de producto (`GET /api/products/:id` y `/by-barcode/:code`).
  * A diferencia del listado, ESTE sí trae `prices`: por eso el POS pide el
  * detalle antes de sumar un producto al carrito.
+ *
+ * `availableStock` NO viene del detalle (lo agrega solo el listado), así
+ * que se resuelve aparte y puede ser `null` si no se pudo averiguar.
  */
-export interface ProductDetail extends ProductListItem {
+export interface ProductDetail
+  extends Omit<ProductListItem, "defaultPrice" | "availableStock"> {
   prices: ProductPrice[];
   barcodes: Array<{ id: number; barcode: string }>;
+  availableStock: number | null;
 }
 
 /** Línea del carrito, ya con el precio resuelto del lado del cliente. */
@@ -49,6 +54,8 @@ export interface CartLine {
   unitPrice: number;
   /** Precio de la lista elegida; sirve para marcar cuándo se está bonificando. */
   listPrice: number | null;
+  /** Stock vendible al momento de agregarlo. `null` si no se pudo saber. */
+  availableStock: number | null;
   discount: number;
   /** Precios del producto: permiten recalcular si cambia la lista elegida. */
   prices: ProductPrice[];
@@ -99,6 +106,8 @@ export interface SaleCreated {
    * BRUTO entregado: siempre se cumple suma(payments) − changeGiven = total.
    */
   changeGiven: Decimal;
+  /** La venta se hizo sin stock disponible (queda por regularizar). */
+  oversold: boolean;
   status: "COMPLETED" | "VOIDED";
   items: Array<{
     id: number;

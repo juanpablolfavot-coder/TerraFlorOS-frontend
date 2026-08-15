@@ -1,5 +1,44 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.14.0] — Configuración y aviso de venta sin stock
+
+- **Pantalla de Configuración** en `/configuracion` (permiso
+  `settings.manage`): las settings del sistema agrupadas por módulo, usando
+  la `description` del backend como etiqueta y agregando una explicación en
+  castellano donde hace falta
+- **«Permitir vender sin stock» es un interruptor**, no un campo de texto con
+  `"true"`, y debajo explica qué implica: se puede vender aunque no haya
+  stock cargado, queda en negativo y se regulariza después
+- Las settings numéricas se validan del lado del cliente con la misma regla
+  del backend (número no negativo), y guardar pide confirmación porque
+  cambia el comportamiento para todos
+- **Aviso en el POS**: cuando una línea pide más de lo que hay, el carrito lo
+  marca. Con `stock.allow_negative` activo el aviso es **ámbar e
+  informativo** («Sin stock — se venderá en negativo») y el cobro sigue
+  habilitado; sin la setting, el aviso es **rojo** y el backend rechaza la
+  venta como siempre
+- Arriba del carrito aparece además un aviso general cuando la venta va a
+  dejar stock en negativo
+- **El comprobante refleja `oversold`** cuando la venta se hizo sin stock:
+  «venta sobre stock pendiente de regularizar»
+
+### Sobre el contrato del backend
+
+- Leer `/api/settings` acepta `sales.create` o `settings.manage` — el POS
+  necesita saber si puede vender en negativo. Escribir exige
+  `settings.manage`
+- El `PATCH` recibe un **array pelado**, no crea claves nuevas y valida por
+  clave; los valores viajan siempre como string
+- El POS **no bloquea** el cobro por su cuenta cuando falta stock: el stock
+  que conoce puede estar viejo, así que la autoridad sigue siendo el 409 del
+  backend. La pantalla avisa, no decide
+
+### Cambios internos
+
+- `fetchProductDetail` y `fetchProductByCode` del POS resuelven el
+  `availableStock` con el listado: el detalle del backend no lo trae. El tipo
+  `ProductDetail` de ventas dejó de heredarlo como si viniera
+
 ## [0.13.0] — Usuarios, roles y permisos
 
 - **Padrón de usuarios** con nombre, usuario, rol, sucursal, último ingreso y

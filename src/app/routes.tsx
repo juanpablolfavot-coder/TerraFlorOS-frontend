@@ -14,6 +14,7 @@ import { QuoteDetailPage } from "@/features/quotes/QuoteDetailPage";
 import { QuoteFormPage } from "@/features/quotes/QuoteFormPage";
 import { QuotePrintPage } from "@/features/quotes/QuotePrintPage";
 import { QuotesPage } from "@/features/quotes/QuotesPage";
+import { SettingsPage } from "@/features/settings/SettingsPage";
 import { UserDetailPage } from "@/features/users/UserDetailPage";
 import { UsersPage } from "@/features/users/UsersPage";
 import { PurchasesPage } from "@/features/purchases/PurchasesPage";
@@ -136,6 +137,11 @@ export function AppRoutes() {
           <Route element={<RequirePermission permission={PERMISSIONS.PRODUCTS_VIEW} />}>
             <Route path="proveedores" element={<SuppliersPage />} />
             <Route path="proveedores/:id" element={<SupplierDetailPage />} />
+          </Route>
+
+          {/* Editar configuración exige settings.manage; leerla, no */}
+          <Route element={<RequirePermission permission={PERMISSIONS.SETTINGS_MANAGE} />}>
+            <Route path="configuracion" element={<SettingsPage />} />
           </Route>
 
           <Route element={<RequirePermission permission={PERMISSIONS.USERS_MANAGE} />}>

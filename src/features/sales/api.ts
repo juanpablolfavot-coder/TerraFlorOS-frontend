@@ -88,10 +88,29 @@ export function useProductSearch(term: string) {
   });
 }
 
-/** Detalle con precios. Necesario antes de sumar al carrito. */
+/**
+ * Stock vendible de un producto.
+ *
+ * Sale del LISTADO porque el detalle no lo trae: el backend solo decora
+ * con `availableStock` los items del listado. Se busca por SKU, que es
+ * único, y devuelve `null` si no se pudo resolver — el POS trata ese
+ * caso como "no sé", no como "cero".
+ */
+async function fetchAvailableStock(sku: string, productId: number): Promise<number | null> {
+  try {
+    const { data } = await api.get<Paginated<ProductListItem>>("/api/products", {
+      params: { search: sku, pageSize: 5 },
+    });
+    return data.items.find((item) => item.id === productId)?.availableStock ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Detalle con precios y stock. Necesario antes de sumar al carrito. */
 export async function fetchProductDetail(id: number): Promise<ProductDetail> {
   const { data } = await api.get<ProductDetail>(`/api/products/${id}`);
-  return data;
+  return { ...data, availableStock: await fetchAvailableStock(data.sku, data.id) };
 }
 
 /**
@@ -104,7 +123,7 @@ export async function fetchProductByBarcode(code: string): Promise<ProductDetail
     const { data } = await api.get<ProductDetail>(
       `/api/products/by-barcode/${encodeURIComponent(code)}`
     );
-    return data;
+    return { ...data, availableStock: await fetchAvailableStock(data.sku, data.id) };
   } catch (error) {
     if (isApiError(error) && error.response?.status === 404) return null;
     throw error;

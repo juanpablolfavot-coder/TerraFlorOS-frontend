@@ -16,6 +16,7 @@ import { useRegisters } from "@/features/cash/api";
 import { OpenRegisterScreen } from "@/features/cash/OpenRegisterScreen";
 import { CustomerPicker } from "@/features/customers/CustomerPicker";
 import type { CustomerListItem } from "@/features/customers/types";
+import { usePermiteStockNegativo } from "@/features/settings/api";
 import { getApiErrorMessage, isApiError } from "@/lib/api";
 import { formatMoney, formatQuantity, toNumber } from "@/lib/format";
 import { useDocumentTitle } from "@/lib/hooks";
@@ -92,6 +93,14 @@ export function PosPage() {
   const methods = usePaymentMethods();
   const createSale = useCreateSale();
 
+  /**
+   * `stock.allow_negative`. Leer la configuración alcanza con
+   * `sales.create`, justamente para que el POS pueda avisar antes de
+   * cobrar. Si no se pudo leer se asume `false`: el comportamiento
+   * estricto de siempre.
+   */
+  const permiteStockNegativo = usePermiteStockNegativo();
+
   const enfocarBuscador = () => buscadorRef.current?.focus();
 
   /**
@@ -101,6 +110,16 @@ export function PosPage() {
   const totalesDePago = useMemo(
     () => calcularPagos(payments, methods.data ?? [], cart.totals.total),
     [payments, methods.data, cart.totals.total]
+  );
+
+  /**
+   * Líneas que piden más de lo que hay. Con `allow_negative` activo esto
+   * es solo un aviso; sin ella, el backend rechaza la venta con 409 y ese
+   * error se muestra como siempre — no se bloquea de este lado, porque el
+   * stock que conoce la pantalla puede estar desactualizado.
+   */
+  const hayLineasSinStock = cart.lines.some(
+    (linea) => linea.availableStock !== null && linea.quantity > linea.availableStock
   );
 
   const puedeCobrar =
@@ -290,11 +309,19 @@ export function PosPage() {
             <CartList
               lines={cart.lines}
               puedeEditarPrecio={puedeEditarPrecio}
+              permiteStockNegativo={permiteStockNegativo}
               onQuantityChange={cart.setQuantity}
               onUnitPriceChange={cart.setUnitPrice}
               onRemove={cart.removeLine}
             />
           </Card>
+
+          {hayLineasSinStock && permiteStockNegativo && (
+            <Alert tone="warning" className="text-sm">
+              Hay productos sin stock suficiente. La venta se va a registrar igual y el stock va a
+              quedar en negativo hasta que lo regularices.
+            </Alert>
+          )}
 
           {(priceLists.data?.length ?? 0) > 1 && (
             <div className="flex flex-wrap items-center gap-3">
@@ -449,6 +476,12 @@ export function PosPage() {
               {formatMoney(vueltoDeLaVenta)}
             </span>
           </div>
+        )}
+
+        {ventaHecha?.oversold === true && (
+          <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Venta sobre stock pendiente de regularizar: se vendió sin stock disponible.
+          </p>
         )}
 
         <p className="mt-4 text-sm text-stone-500">

@@ -1,5 +1,5 @@
 import { Badge, EmptyState, Table, TBody, TD, TH, THead, TR } from "@/components/ui";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { CartLine } from "./types";
 
@@ -11,6 +11,7 @@ const INPUT =
 export function CartList({
   lines,
   puedeEditarPrecio,
+  permiteStockNegativo,
   onQuantityChange,
   onUnitPriceChange,
   onRemove,
@@ -18,6 +19,12 @@ export function CartList({
   lines: CartLine[];
   /** El precio solo se edita con `sales.discount`. */
   puedeEditarPrecio: boolean;
+  /**
+   * `stock.allow_negative` del backend. Cambia el tono del aviso: con la
+   * config activa faltar stock es informativo (la venta procede y el
+   * stock queda en negativo); sin ella, el backend rechaza la venta.
+   */
+  permiteStockNegativo: boolean;
   onQuantityChange: (productId: number, quantity: number) => void;
   onUnitPriceChange: (productId: number, unitPrice: number) => void;
   onRemove: (productId: number) => void;
@@ -55,15 +62,32 @@ export function CartList({
         {lines.map((linea) => {
           const subtotal = linea.unitPrice * linea.quantity - linea.discount;
           const bonificado = linea.listPrice !== null && linea.unitPrice < linea.listPrice;
+          // `null` = no se pudo saber el stock: no se inventa un faltante
+          const faltaStock =
+            linea.availableStock !== null && linea.quantity > linea.availableStock;
 
           return (
             <TR key={linea.productId}>
               <TD>
                 <span className="font-medium text-stone-900">{linea.name}</span>
-                <span className="mt-0.5 flex items-center gap-2">
+                <span className="mt-0.5 flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs text-stone-500">{linea.sku}</span>
                   {bonificado && <Badge tone="warning">Bonificado</Badge>}
                   {linea.listPrice === null && <Badge tone="neutral">Sin lista</Badge>}
+                  {faltaStock &&
+                    (permiteStockNegativo ? (
+                      <Badge tone="warning">
+                        {linea.availableStock! <= 0
+                          ? "Sin stock — se venderá en negativo"
+                          : `Solo ${formatQuantity(linea.availableStock)} en stock — se venderá en negativo`}
+                      </Badge>
+                    ) : (
+                      <Badge tone="danger">
+                        {linea.availableStock! <= 0
+                          ? "Sin stock"
+                          : `Stock insuficiente: hay ${formatQuantity(linea.availableStock)}`}
+                      </Badge>
+                    ))}
                 </span>
               </TD>
 
