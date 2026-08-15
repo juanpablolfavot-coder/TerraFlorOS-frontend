@@ -53,6 +53,13 @@ export interface CurrentSession {
       total: number;
       count: number;
     }>;
+    /**
+     * Vuelto entregado en el turno. Existe porque `salesByPaymentMethod`
+     * muestra el BRUTO que entregó el cliente, mientras que `expectedCash`
+     * sale de los movimientos de caja, que son netos: el vuelto es
+     * exactamente la diferencia entre los dos.
+     */
+    changeGiven: number;
     cashIn: number;
     cashOut: number;
     openingAmount: number;

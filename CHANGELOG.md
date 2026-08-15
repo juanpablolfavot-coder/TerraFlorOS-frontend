@@ -1,5 +1,43 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.10.0] — Vuelto en efectivo y panel de pago más cómodo
+
+- **Vuelto**: el efectivo ya puede superar el total. Cuando sobra, el panel
+  muestra **Vuelto** en verde y grande, con cuánto queda neto en la caja; ya
+  no aparece el aviso amarillo que decía que el backend no aceptaba vuelto
+- **Falta y vuelto dejaron de confundirse**: faltante en rojo (falta plata,
+  no deja cobrar) y vuelto en verde (sobra y se devuelve). El pago exacto se
+  confirma con un tilde en vez de no decir nada
+- **Los pagos electrónicos no dan vuelto.** Si la tarjeta o la transferencia
+  superan el total, el panel bloquea el cobro y explica qué hacer (bajar ese
+  monto o pasar la diferencia a efectivo), que es exactamente lo que
+  rechazaría el backend
+- **El comprobante muestra el vuelto** tomado de `changeGiven` de la
+  respuesta, no de lo que calculó la pantalla
+- El botón de cobrar se habilita con la misma regla del backend: suma ≥
+  total, con el exceso cubierto por efectivo
+
+### Ergonomía del panel de pago
+
+- Cada pago pasa a ser un bloque con aire: el método arriba, en su propio
+  renglón, y el **monto abajo, grande y alineado a la derecha** con el signo
+  adentro. Antes eran un selector y un campo de 7rem apretados en una fila
+- **Atajos de efectivo**: «Justo» y los dos billetes redondos que siguen
+  (ej. para $6.800 ofrece $7.000 y $8.000), que es el camino corto al caso
+  más común del mostrador
+- El pago mixto muestra el desglose efectivo / electrónico bajo el total
+  pagado, para saber de dónde sale el vuelto
+- El monto se guarda como texto mientras se tipea (acepta coma decimal) en
+  vez de convertirse a número en cada tecla, que comía los decimales a medio
+  escribir
+
+### En caja
+
+- El resumen del turno aclara el vuelto entregado cuando lo hubo: los totales
+  por medio de pago son el bruto que entregó el cliente, mientras que el
+  efectivo esperado es el neto. Sin esa línea, la diferencia entre las dos
+  cifras no se podía explicar desde la pantalla
+
 ## [0.9.0] — Clientes y selector de cliente en el POS
 
 - **Padrón de clientes** con búsqueda por nombre, teléfono, email o CUIT, y

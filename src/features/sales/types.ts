@@ -58,7 +58,12 @@ export interface PaymentLine {
   /** Id local de la fila, no viaja al backend. */
   key: string;
   paymentMethodId: number | null;
-  amount: number;
+  /**
+   * Monto COMO TEXTO, tal cual lo tipea el cajero (acepta coma decimal).
+   * Guardarlo como number obligaba a reformatear en cada tecla y comía los
+   * decimales a medio escribir; se convierte recién al enviar.
+   */
+  amount: string;
 }
 
 /** POST /api/sales */
@@ -88,6 +93,12 @@ export interface SaleCreated {
   total: Decimal;
   subtotal: Decimal;
   discount: Decimal;
+  /**
+   * Vuelto entregado. Queda persistido en la venta, así que un comprobante
+   * reimpreso muestra lo mismo que el original. Los `payments` van por el
+   * BRUTO entregado: siempre se cumple suma(payments) − changeGiven = total.
+   */
+  changeGiven: Decimal;
   status: "COMPLETED" | "VOIDED";
   items: Array<{
     id: number;

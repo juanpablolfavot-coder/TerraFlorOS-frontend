@@ -207,33 +207,45 @@ export function CashPage() {
             {current.isPending ? (
               <LoadingBlock label="Cargando el turno…" />
             ) : resumen && resumen.salesByPaymentMethod.length > 0 ? (
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Medio de pago</TH>
-                    <TH align="right">Operaciones</TH>
-                    <TH align="right">Total</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {resumen.salesByPaymentMethod.map((metodo) => (
-                    <TR key={metodo.name}>
-                      <TD>
-                        <span className="flex items-center gap-2">
-                          {metodo.name}
-                          {metodo.affectsCash && <Badge tone="brand">Efectivo</Badge>}
-                        </span>
-                      </TD>
-                      <TD align="right" numeric>
-                        {formatNumber(metodo.count)}
-                      </TD>
-                      <TD align="right" numeric className="font-medium text-stone-900">
-                        {formatMoney(metodo.total)}
-                      </TD>
+              <>
+                <Table>
+                  <THead>
+                    <TR>
+                      <TH>Medio de pago</TH>
+                      <TH align="right">Operaciones</TH>
+                      <TH align="right">Total</TH>
                     </TR>
-                  ))}
-                </TBody>
-              </Table>
+                  </THead>
+                  <TBody>
+                    {resumen.salesByPaymentMethod.map((metodo) => (
+                      <TR key={metodo.name}>
+                        <TD>
+                          <span className="flex items-center gap-2">
+                            {metodo.name}
+                            {metodo.affectsCash && <Badge tone="brand">Efectivo</Badge>}
+                          </span>
+                        </TD>
+                        <TD align="right" numeric>
+                          {formatNumber(metodo.count)}
+                        </TD>
+                        <TD align="right" numeric className="font-medium text-stone-900">
+                          {formatMoney(metodo.total)}
+                        </TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+
+                {resumen.changeGiven > 0 && (
+                  <p className="border-t border-stone-100 px-6 py-4 text-sm text-stone-500 sm:px-8">
+                    El efectivo de la tabla es lo que entregaron los clientes. Se devolvieron{" "}
+                    <span className="tabular font-medium text-stone-700">
+                      {formatMoney(resumen.changeGiven)}
+                    </span>{" "}
+                    de vuelto, ya descontados del efectivo esperado.
+                  </p>
+                )}
+              </>
             ) : (
               <EmptyState
                 title="Todavía no hubo cobros en este turno"

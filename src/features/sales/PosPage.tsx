@@ -17,10 +17,11 @@ import { OpenRegisterScreen } from "@/features/cash/OpenRegisterScreen";
 import { CustomerPicker } from "@/features/customers/CustomerPicker";
 import type { CustomerListItem } from "@/features/customers/types";
 import { getApiErrorMessage, isApiError } from "@/lib/api";
-import { formatMoney, formatQuantity } from "@/lib/format";
+import { formatMoney, formatQuantity, toNumber } from "@/lib/format";
 import { useDocumentTitle } from "@/lib/hooks";
 import { useCreateSale, usePaymentMethods, usePriceLists } from "./api";
 import { CartList } from "./CartList";
+import { calcularPagos, montoATexto, montoDe } from "./paymentRules";
 import { PaymentPanel } from "./PaymentPanel";
 import { ProductSearchBar } from "./ProductSearchBar";
 import { usePosCart } from "./usePosCart";
@@ -31,7 +32,7 @@ let nextPaymentKey = 0;
 const nuevoPago = (): PaymentLine => ({
   key: `pago-${(nextPaymentKey += 1)}`,
   paymentMethodId: null,
-  amount: 0,
+  amount: "",
 });
 
 /** Detalle del 409 de stock, si el error trae esa forma. */
@@ -93,16 +94,17 @@ export function PosPage() {
 
   const enfocarBuscador = () => buscadorRef.current?.focus();
 
-  const pagado = Math.round(payments.reduce((s, p) => s + p.amount, 0) * 100) / 100;
-  const restante = Math.round((cart.totals.total - pagado) * 100) / 100;
+  /**
+   * Estado del cobro con las mismas reglas que valida el backend: el
+   * efectivo puede exceder el total (eso es el vuelto), los electrónicos no.
+   */
+  const totalesDePago = useMemo(
+    () => calcularPagos(payments, methods.data ?? [], cart.totals.total),
+    [payments, methods.data, cart.totals.total]
+  );
 
   const puedeCobrar =
-    cart.lines.length > 0 &&
-    registerId !== null &&
-    payments.length > 0 &&
-    payments.every((p) => p.paymentMethodId !== null && p.amount > 0) &&
-    Math.abs(restante) < 0.005 &&
-    !createSale.isPending;
+    cart.lines.length > 0 && registerId !== null && totalesDePago.ok && !createSale.isPending;
 
   // ---------------------------------------------------------------
   // Cliente (opcional) y su lista de precios
@@ -155,17 +157,19 @@ export function PosPage() {
         // La venta puede ir sin cliente: solo viaja si se eligió uno
         ...(cliente !== null ? { customerId: cliente.id } : {}),
         // Se manda SIEMPRE el unitPrice para que el total del backend sea
-        // idéntico al que se mostró: la validación "pagos == total" es
-        // exacta y un centavo de diferencia rechaza la venta.
+        // idéntico al que se mostró: si difiriera por centavos, el vuelto
+        // que calcula el servidor no sería el que vio el cajero.
         items: cart.lines.map((linea) => ({
           productId: linea.productId,
           quantity: linea.quantity,
           unitPrice: linea.unitPrice,
           ...(linea.discount > 0 ? { discount: linea.discount } : {}),
         })),
+        // El pago va por el BRUTO entregado: el backend calcula el vuelto y
+        // registra en la caja el neto que queda en el cajón.
         payments: payments.map((pago) => ({
           paymentMethodId: pago.paymentMethodId!,
-          amount: pago.amount,
+          amount: montoDe(pago.amount),
         })),
       },
       {
@@ -231,6 +235,7 @@ export function PosPage() {
   const cajaActual = cajasAbiertas.find((caja) => caja.id === registerId) ?? cajasAbiertas[0]!;
   const errorMetodos =
     methods.error !== null ? getApiErrorMessage(methods.error) : null;
+  const vueltoDeLaVenta = toNumber(ventaHecha?.changeGiven);
 
   return (
     <div className="space-y-8">
@@ -350,6 +355,7 @@ export function PosPage() {
               payments={payments}
               methods={methods.data ?? []}
               methodsError={errorMetodos}
+              totales={totalesDePago}
               onChange={(key, patch) =>
                 setPayments((previos) =>
                   previos.map((pago) => (pago.key === key ? { ...pago, ...patch } : pago))
@@ -365,9 +371,12 @@ export function PosPage() {
                   const ultimo = previos[previos.length - 1]!;
                   const yaPago = previos
                     .slice(0, -1)
-                    .reduce((suma, pago) => suma + pago.amount, 0);
+                    .reduce((suma, pago) => suma + montoDe(pago.amount), 0);
                   const falta = Math.round((cart.totals.total - yaPago) * 100) / 100;
-                  return [...previos.slice(0, -1), { ...ultimo, amount: Math.max(falta, 0) }];
+                  return [
+                    ...previos.slice(0, -1),
+                    { ...ultimo, amount: montoATexto(Math.max(falta, 0)) },
+                  ];
                 })
               }
             />
@@ -431,7 +440,18 @@ export function PosPage() {
             Cliente: <span className="font-medium">{ventaHecha.customer.name}</span>
           </p>
         )}
-        <p className="mt-2 text-sm text-stone-500">
+
+        {/* El vuelto sale de la respuesta, no de lo que calculó la pantalla */}
+        {vueltoDeLaVenta > 0 && (
+          <div className="mt-4 flex items-center justify-between gap-4 rounded-lg bg-emerald-50 px-4 py-3">
+            <span className="text-sm font-medium text-emerald-800">Vuelto a entregar</span>
+            <span className="tabular text-2xl font-semibold text-emerald-700">
+              {formatMoney(vueltoDeLaVenta)}
+            </span>
+          </div>
+        )}
+
+        <p className="mt-4 text-sm text-stone-500">
           El carrito quedó vacío y el foco vuelve al buscador.
         </p>
       </Modal>

@@ -1,25 +1,139 @@
 import { Alert, Badge, Button, Select } from "@/components/ui";
 import { formatMoney } from "@/lib/format";
-import { cn } from "@/lib/cn";
+import { montoATexto, montoDe, sugerenciasDeEfectivo, type PaymentTotals } from "./paymentRules";
 import type { PaymentLine, PaymentMethod } from "./types";
 
-// Sin `w-full`: el ancho lo fija quien lo usa. Si estuviera acá chocaría
-// con el `w-28` del uso (dos utilidades de width) y el input se comería
-// el espacio del selector de método.
+/**
+ * El monto es lo que más se tipea del panel: va grande, alineado a la
+ * derecha y con el signo adentro, como en una caja registradora.
+ */
 const AMOUNT_INPUT =
-  "rounded-lg bg-white px-3 py-2 text-right text-sm tabular ring-1 ring-stone-300 " +
-  "ring-inset focus:ring-2 focus:ring-brand-600 focus:outline-none";
+  "h-14 w-full rounded-lg bg-white pr-4 pl-9 text-right text-2xl tabular text-stone-900 " +
+  "ring-1 ring-stone-300 ring-inset placeholder:text-stone-300 " +
+  "focus:ring-2 focus:ring-brand-600 focus:outline-none";
+
+/** Fila de pago: método arriba, monto abajo y con aire. */
+function PaymentRow({
+  pago,
+  metodo,
+  methods,
+  falta,
+  sePuedeQuitar,
+  onChange,
+  onRemove,
+}: {
+  pago: PaymentLine;
+  metodo: PaymentMethod | undefined;
+  methods: PaymentMethod[];
+  falta: number;
+  sePuedeQuitar: boolean;
+  onChange: (key: string, patch: Partial<PaymentLine>) => void;
+  onRemove: (key: string) => void;
+}) {
+  const esEfectivo = metodo?.affectsCash === true;
+  const sugerencias = esEfectivo ? sugerenciasDeEfectivo(falta) : [];
+
+  return (
+    <div className="space-y-3 rounded-xl p-4 ring-1 ring-stone-200 ring-inset">
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <Select
+            aria-label="Método de pago"
+            value={pago.paymentMethodId ?? ""}
+            disabled={methods.length === 0}
+            onChange={(event) =>
+              onChange(pago.key, {
+                paymentMethodId: event.target.value === "" ? null : Number(event.target.value),
+              })
+            }
+          >
+            <option value="">Elegí el método…</option>
+            {methods.map((opcion) => (
+              <option key={opcion.id} value={opcion.id}>
+                {opcion.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        {sePuedeQuitar && (
+          <button
+            type="button"
+            onClick={() => onRemove(pago.key)}
+            aria-label="Quitar pago"
+            className="rounded-md p-2 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              className="size-4"
+              aria-hidden="true"
+            >
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      <div className="relative">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-lg text-stone-400"
+        >
+          $
+        </span>
+        <input
+          type="text"
+          inputMode="decimal"
+          aria-label="Monto"
+          className={AMOUNT_INPUT}
+          placeholder="0,00"
+          value={pago.amount}
+          onChange={(event) => onChange(pago.key, { amount: event.target.value })}
+        />
+      </div>
+
+      {sugerencias.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange(pago.key, { amount: montoATexto(falta) })}
+          >
+            Justo {formatMoney(falta)}
+          </Button>
+          {sugerencias.map((monto) => (
+            <Button
+              key={monto}
+              variant="ghost"
+              size="sm"
+              onClick={() => onChange(pago.key, { amount: montoATexto(monto) })}
+            >
+              {formatMoney(monto)}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
- * Panel de cobro con soporte de pago mixto: varias filas método + monto.
- * El backend exige que la suma cierre EXACTA contra el total, así que el
- * botón de cobrar solo se habilita cuando la diferencia es cero.
+ * Panel de cobro con pago mixto.
+ *
+ * El efectivo PUEDE superar el total: la diferencia es el vuelto. Los
+ * medios electrónicos no dan vuelto, así que su suma nunca puede pasarse
+ * del total — misma regla que aplica el backend.
  */
 export function PaymentPanel({
   total,
   payments,
   methods,
   methodsError,
+  totales,
   onChange,
   onAdd,
   onRemove,
@@ -30,83 +144,47 @@ export function PaymentPanel({
   methods: PaymentMethod[];
   /** Mensaje si no se pudo cargar el catálogo de métodos. */
   methodsError: string | null;
+  totales: PaymentTotals;
   onChange: (key: string, patch: Partial<PaymentLine>) => void;
   onAdd: () => void;
   onRemove: (key: string) => void;
   /** Completa el pago pendiente en la última fila. */
   onCompletar: () => void;
 }) {
-  const pagado = Math.round(payments.reduce((suma, p) => suma + p.amount, 0) * 100) / 100;
-  const restante = Math.round((total - pagado) * 100) / 100;
+  const { pagado, efectivo, electronico, falta, vuelto, excesoElectronico } = totales;
+  const mixto = efectivo > 0 && electronico > 0;
 
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        {payments.map((pago) => (
-          <div key={pago.key} className="flex items-center gap-2">
-            <Select
-              aria-label="Método de pago"
-              className="flex-1"
-              value={pago.paymentMethodId ?? ""}
-              disabled={methods.length === 0}
-              onChange={(event) =>
-                onChange(pago.key, {
-                  paymentMethodId: event.target.value === "" ? null : Number(event.target.value),
-                })
-              }
-            >
-              <option value="">Método…</option>
-              {methods.map((metodo) => (
-                <option key={metodo.id} value={metodo.id}>
-                  {metodo.name}
-                </option>
-              ))}
-            </Select>
+        {payments.map((pago) => {
+          const metodo = methods.find((m) => m.id === pago.paymentMethodId);
+          // Lo que falta SIN contar esta fila: es lo que tiene que cubrir
+          const aporte = metodo === undefined ? 0 : montoDe(pago.amount);
+          const faltaDeLaFila = Math.round(Math.max(0, total - (pagado - aporte)) * 100) / 100;
 
-            <input
-              type="number"
-              min={0}
-              step="any"
-              className={cn(AMOUNT_INPUT, "w-28")}
-              aria-label="Monto"
-              value={pago.amount === 0 ? "" : pago.amount}
-              placeholder="0,00"
-              onChange={(event) => {
-                const valor = Number(event.target.value);
-                onChange(pago.key, { amount: Number.isFinite(valor) && valor >= 0 ? valor : 0 });
-              }}
+          return (
+            <PaymentRow
+              key={pago.key}
+              pago={pago}
+              metodo={metodo}
+              methods={methods}
+              falta={faltaDeLaFila}
+              sePuedeQuitar={payments.length > 1}
+              onChange={onChange}
+              onRemove={onRemove}
             />
-
-            <button
-              type="button"
-              onClick={() => onRemove(pago.key)}
-              disabled={payments.length === 1}
-              aria-label="Quitar pago"
-              className="rounded-md p-2 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-30"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.6}
-                strokeLinecap="round"
-                className="size-4"
-                aria-hidden="true"
-              >
-                <path d="m6 6 12 12M18 6 6 18" />
-              </svg>
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" size="sm" onClick={onAdd} disabled={methods.length === 0}>
           Agregar pago
         </Button>
-        {restante > 0 && (
+        {falta > 0 && (
           <Button variant="ghost" size="sm" onClick={onCompletar} disabled={methods.length === 0}>
-            Completar {formatMoney(restante)}
+            Completar {formatMoney(falta)}
           </Button>
         )}
       </div>
@@ -117,46 +195,71 @@ export function PaymentPanel({
         </Alert>
       )}
 
-      {/* Estado del pago: cuánto falta o cuánto sobra */}
       <div className="space-y-2 border-t border-stone-200 pt-5 text-sm">
         <div className="flex items-center justify-between text-stone-500">
           <span>Pagado</span>
           <span className="tabular">{formatMoney(pagado)}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-stone-500">{restante >= 0 ? "Falta" : "Sobra"}</span>
-          <span
-            className={cn(
-              "tabular font-semibold",
-              restante === 0 ? "text-brand-700" : restante > 0 ? "text-amber-600" : "text-red-600"
-            )}
-          >
-            {formatMoney(Math.abs(restante))}
-          </span>
-        </div>
+        {mixto && (
+          <div className="flex items-center justify-between text-xs text-stone-400">
+            <span>Efectivo {formatMoney(efectivo)}</span>
+            <span>Electrónico {formatMoney(electronico)}</span>
+          </div>
+        )}
       </div>
 
-      {restante < 0 && (
-        <Alert tone="warning" className="text-sm">
-          El backend exige que los pagos sumen exactamente el total: no acepta vuelto.
+      {/* Falta y vuelto son cosas distintas: falta plata vs. sobra y se devuelve */}
+      {excesoElectronico ? (
+        <Alert tone="danger" title="Revisá los pagos electrónicos">
+          Los pagos con tarjeta o transferencia no pueden superar su parte: no dan vuelto. Bajá ese
+          monto a {formatMoney(total)} como máximo, o cobrá la diferencia en efectivo.
         </Alert>
+      ) : falta > 0 ? (
+        <div className="flex items-center justify-between gap-4 rounded-lg bg-red-50 px-4 py-3">
+          <span className="text-sm font-medium text-red-700">Falta</span>
+          <span className="tabular text-2xl font-semibold text-red-700">{formatMoney(falta)}</span>
+        </div>
+      ) : vuelto > 0 ? (
+        <div className="space-y-1 rounded-lg bg-emerald-50 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-emerald-800">Vuelto</span>
+            <span className="tabular text-3xl font-semibold text-emerald-700">
+              {formatMoney(vuelto)}
+            </span>
+          </div>
+          <p className="text-xs text-emerald-700">
+            Se devuelve en efectivo. A la caja entra el neto: {formatMoney(efectivo - vuelto)}.
+          </p>
+        </div>
+      ) : (
+        pagado > 0 && (
+          <p className="flex items-center gap-2 text-sm font-medium text-brand-700">
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-4"
+            >
+              <path d="m4 10.5 4 4 8-9" />
+            </svg>
+            Pago exacto, sin vuelto
+          </p>
+        )
       )}
 
-      {payments.some((p) => p.amount > 0 && p.paymentMethodId === null) && (
+      {totales.faltaMetodo && (
         <p className="text-sm text-amber-600">Elegí el método de cada pago cargado.</p>
       )}
 
-      {methods.length > 0 && (
+      {methods.some((m) => m.affectsCash) && (
         <p className="text-xs text-stone-400">
-          {methods.filter((m) => m.affectsCash).length > 0 ? (
-            <>
-              Los cobros en{" "}
-              <Badge tone="brand">
-                {methods.find((m) => m.affectsCash)?.name ?? "efectivo"}
-              </Badge>{" "}
-              impactan en el turno de caja.
-            </>
-          ) : null}
+          Los cobros en{" "}
+          <Badge tone="brand">{methods.find((m) => m.affectsCash)?.name ?? "efectivo"}</Badge>{" "}
+          impactan en el turno de caja.
         </p>
       )}
     </div>

@@ -170,7 +170,7 @@ Implementado:
 - **Productos**: listado con búsqueda, filtros por tipo/categoría/estado,
   precio y stock disponible por fila, y paginación
 - **Ventas (POS)**: buscador que escanea y busca, carrito, cliente opcional,
-  pago mixto y cobro
+  pago mixto con vuelto en efectivo y cobro
 - **Caja**: apertura, resumen del turno en vivo, detalle completo de
   movimientos (manuales y automáticos) y cierre con arqueo
 - **Catálogo**: lista con filtros, alta y edición de productos con ficha
@@ -230,8 +230,18 @@ Detalles del contrato que conviene tener presentes:
 - `cashIn` del resumen incluye las ventas en efectivo, no solo los depósitos
   manuales
 - El POS manda siempre el `unitPrice` de cada línea para que su total sea
-  idéntico al que calcula el backend: la validación «pagos == total» es
-  exacta y un centavo de diferencia rechaza la venta
+  idéntico al que calcula el backend: si difiriera por centavos, el vuelto
+  que calcula el servidor no sería el que vio el cajero
+- **Vuelto en efectivo.** El backend valida, en este orden: los pagos NO
+  efectivos no pueden superar el total (tarjeta y transferencia no dan
+  vuelto), la suma tiene que cubrir el total, y el vuelto (suma − total) no
+  puede superar el efectivo recibido. Tolerancia de `0.004`. La respuesta
+  trae `changeGiven`, que además queda persistido en la venta
+- **Los `payments` se guardan por el bruto entregado**, y a la caja entra el
+  NETO (efectivo recibido − vuelto) en un solo movimiento `SALE_CASH` por
+  venta. Por eso el resumen del turno expone `summary.changeGiven`: el
+  efectivo de `salesByPaymentMethod` es el bruto y `expectedCash` es el neto,
+  y el vuelto es exactamente la diferencia entre los dos
 - **El listado de productos trae `defaultPrice` y `availableStock`**, los dos
   como `number` ya calculado (no son `Decimal`). `defaultPrice` es el precio
   en la lista por defecto y viene `null` si el producto no cotiza en ella;
