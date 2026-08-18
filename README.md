@@ -190,7 +190,9 @@ Implementado:
   movimientos y las ventas con su hora)
 - **Catálogo**: lista con filtros, alta y edición de productos con ficha
   botánica, precios por lista con historial, códigos de barras y árbol de
-  categorías
+  categorías. El alta carga costo inicial y precios en la misma pantalla,
+  con margen ↔ precio bidireccional (margen sobre costo:
+  `precio = costo × (1 + margen/100)`), respetando `pricing.rounding`
 - **Compras**: órdenes con sus estados, recepción de mercadería que genera
   lotes, y la lista de productos bajo stock mínimo
 - **Proveedores**: padrón con búsqueda, ficha completa, catálogo del
@@ -358,8 +360,13 @@ Detalles del contrato que conviene tener presentes:
   `availableStock` es la suma de `currentQty − reservedQty` de los lotes sin
   contar los de cuarentena, el mismo criterio que usa el POS
 - **Los costos son de solo lectura en el catálogo.** `lastCost` y
-  `averageCost` se actualizan desde las recepciones de compra; el formulario
-  los muestra sin editarlos y solo con `products.view_cost`
+  `averageCost` se actualizan desde las recepciones de compra; la ficha
+  los muestra sin editarlos y solo con `products.view_cost`. La única
+  excepción es el **costo inicial del alta**: `POST /api/products` acepta
+  `initialCost` (exige `products.edit_cost`) y lo guarda como punto de
+  partida de ambos costos. En la edición el campo no existe — un costo mal
+  cargado se corrige con un ajuste de inventario o una compra, y el PATCH
+  lo rechaza con 400
 - **`plantDetail` solo se manda si el producto es de tipo `PLANT`**: el
   backend devuelve 400 si llega en un producto convencional. Y el `kind` no
   viaja en el PATCH, porque su schema no lo acepta

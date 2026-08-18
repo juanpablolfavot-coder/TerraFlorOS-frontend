@@ -1,5 +1,53 @@
 # Changelog — TerraFlorOS frontend
 
+## [0.19.0] — Costo y precio con margen bidireccional en el alta de producto
+
+- **Sección «Costo y precio» en el alta**, arriba del formulario (después de
+  los datos básicos, antes de Reposición): costo inicial, margen y precio por
+  lista de un vistazo, sin scrollear hasta el fondo. Antes el costo
+  directamente no se podía cargar y los precios recién aparecían después de
+  crear el producto
+- **Costo inicial del alta**: viaja como `initialCost` en el
+  `POST /api/products` y el backend lo guarda como `lastCost` y
+  `averageCost` del producto nuevo. Solo lo ve quien tiene
+  `products.edit_cost`; sin el permiso la card lo aclara y el precio se
+  carga directo. **En la edición el campo no existe**: después del alta los
+  costos se mueven por compras, recepciones y ajustes (el PATCH rechaza
+  `initialCost` con 400), así que la ficha los muestra solo lectura
+- **Margen ↔ precio bidireccional, en vivo**: se escribe el % de margen y
+  sale el precio, o se escribe el precio y sale el margen que resulta. Los
+  dos campos están visibles a la vez; el que se calculó solo lleva un tinte
+  suave para distinguirlo del fijado a mano, con un «⇄» entre ambos y la
+  leyenda de que se calculan entre sí. La fórmula es **margen sobre costo**:
+  `precio = costo × (1 + margen/100)` y `margen = (precio/costo − 1) × 100`
+  — es como se piensa al remarcar («el costo más un 60 %»). Vive documentada
+  en `features/products/pricing.ts`
+- **Sin costo no hay margen**: con costo vacío o en 0 el campo de margen se
+  deshabilita con la aclaración, y el precio se sigue cargando directo
+- **Aplica a todas las listas de precios**, no solo la default: cada lista
+  tiene su par margen ↔ precio en el alta y en la ficha. Al crear, los
+  precios cargados van al `PUT /api/products/:id/prices` de siempre (exige
+  `prices.edit`) apenas se crea el producto
+- **Redondeo `pricing.rounding` respetado**: el precio calculado desde el
+  margen se redondea al múltiplo configurado (0 = dos decimales) y la card
+  lo avisa. Es el primer consumidor real de esa setting en el frontend
+- **La ficha del producto también se reordenó**: la card «Costo y precio»
+  (ex «Precios») pasó arriba del formulario — es lo que más se consulta — y
+  ahora muestra los costos de solo lectura y edita los precios con el mismo
+  margen bidireccional. El margen que se muestra ahora es **sobre costo**
+  (antes la columna mostraba margen sobre venta, `(precio − costo)/precio`);
+  los precios guardados se muestran con coma decimal, como se tipean
+- Los inputs de costo, margen y precio siguen el patrón del POS —
+  `type="text"` + `inputMode="decimal"`, estado como string — así los
+  decimales con coma no se comen ni se pierde el foco al tipear
+
+### Sobre el contrato del backend
+
+- `POST /api/products` con `initialCost` opcional (exige `products.edit_cost`
+  además de `products.manage`); `PATCH` lo sigue rechazando con 400
+- `UpdateProductBody` quedó tipado sin `kind` ni `initialCost` para que el
+  error sea de compilación y no un 400 en producción
+
 ## [0.18.0] — Logo y datos del vivero en los comprobantes
 
 - **Sección «Datos del vivero»** en Configuración: nombre, teléfono y dirección

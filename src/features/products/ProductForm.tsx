@@ -11,9 +11,10 @@ import {
 } from "@/components/ui";
 import { PERMISSIONS, useAuth } from "@/features/auth";
 import { getApiErrorMessage, getApiFieldErrors } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
 import { flattenCategories, useCategoryTree, useSupplierOptions } from "./api";
+import { CostoPrecioCard } from "./CostoPrecioCard";
 import { PlantDetailFields } from "./PlantDetailFields";
+import { numeroDe, type FilaPrecio } from "./pricing";
 import {
   erroresPorCampo,
   numeroAApi,
@@ -24,7 +25,13 @@ import {
   type PlantFormValues,
   type ProductFormValues,
 } from "./schemas";
-import type { CreateProductBody, PlantDetailInput, ProductDetail, ProductKind } from "./types";
+import type {
+  CreateProductBody,
+  PlantDetailInput,
+  ProductDetail,
+  ProductKind,
+  PutPricesBody,
+} from "./types";
 
 const PLANT_VACIA: PlantFormValues = {
   commonName: "", scientificName: "", genus: "", species: "", variety: "", cultivar: "",
@@ -57,6 +64,7 @@ function valoresIniciales(producto: ProductDetail | null): ProductFormValues {
     optimalStock: numero(producto?.optimalStock),
     maxStock: numero(producto?.maxStock),
     mainSupplierId: producto?.mainSupplierId != null ? String(producto.mainSupplierId) : "",
+    initialCost: "",
     imageUrl: texto(producto?.imageUrl),
     isActive: producto?.isActive ?? true,
     isFavorite: producto?.isFavorite ?? false,
@@ -144,11 +152,12 @@ export function ProductForm({
   producto: ProductDetail | null;
   guardando: boolean;
   errorServidor: unknown;
-  onSubmit: (body: CreateProductBody) => void;
+  /** En el alta, `precios` trae los precios por lista para cargar tras crear. */
+  onSubmit: (body: CreateProductBody, precios: PutPricesBody) => void;
   onCancel: () => void;
 }) {
   const { can } = useAuth();
-  const verCostos = can(PERMISSIONS.PRODUCTS_VIEW_COST);
+  const puedeCostoInicial = can(PERMISSIONS.PRODUCTS_EDIT_COST);
 
   const categorias = useCategoryTree();
   const proveedores = useSupplierOptions();
@@ -157,6 +166,8 @@ export function ProductForm({
   const [planta, setPlanta] = useState<PlantFormValues>(() => plantaInicial(producto));
   const [flags, setFlags] = useState<PlantFlags>(() => flagsIniciales(producto));
   const [errores, setErrores] = useState<Record<string, string>>({});
+  // Filas margen ↔ precio del alta, una por lista de precios
+  const [filasPrecio, setFilasPrecio] = useState<Record<number, FilaPrecio>>({});
 
   const esAlta = producto === null;
   const opcionesCategoria = flattenCategories(categorias.data);
@@ -201,9 +212,23 @@ export function ProductForm({
       isFavorite: valores.isFavorite,
       // El backend rechaza plantDetail en productos convencionales
       ...(valores.kind === "PLANT" ? { plantDetail: armarPlantDetail(planta, flags) } : {}),
+      // El costo inicial solo existe en el alta y exige products.edit_cost
+      ...(esAlta && puedeCostoInicial && numeroAApi(valores.initialCost) !== null
+        ? { initialCost: numeroAApi(valores.initialCost) ?? 0 }
+        : {}),
     };
 
-    onSubmit(body);
+    // Precios del alta: viajan aparte (PUT de precios tras crear)
+    const precios: PutPricesBody = esAlta
+      ? Object.entries(filasPrecio).flatMap(([listaId, fila]) => {
+          const precio = numeroDe(fila.precio);
+          return precio !== null && precio >= 0
+            ? [{ priceListId: Number(listaId), price: precio }]
+            : [];
+        })
+      : [];
+
+    onSubmit(body, precios);
   };
 
   return (
@@ -312,6 +337,19 @@ export function ProductForm({
         </div>
       </Card>
 
+      {/* Costo y precio, arriba y de un vistazo. Solo en el ALTA: después
+          el costo se mueve por compras/ajustes y los precios se editan en
+          su propia card (ProductPricesCard). */}
+      {esAlta && (
+        <CostoPrecioCard
+          costo={valores.initialCost}
+          filas={filasPrecio}
+          errorCosto={errorDeCampo("initialCost")}
+          onCostoChange={(valor) => set("initialCost", valor)}
+          onFilasChange={setFilasPrecio}
+        />
+      )}
+
       <Card className="space-y-6">
         <CardHeader
           title="Reposición"
@@ -357,27 +395,6 @@ export function ProductForm({
           />
         </div>
       </Card>
-
-      {/* Costos: SOLO lectura y solo si el usuario los puede ver. El
-          catálogo no los edita — se actualizan desde las recepciones. */}
-      {verCostos && producto !== null && (
-        <Card className="space-y-4">
-          <CardHeader
-            title="Costos"
-            description="Se actualizan solos con cada recepción de mercadería; acá no se editan."
-          />
-          <dl className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-1">
-              <dt className="text-sm text-stone-500">Último costo</dt>
-              <dd className="tabular text-lg font-semibold">{formatMoney(producto.lastCost)}</dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="text-sm text-stone-500">Costo promedio</dt>
-              <dd className="tabular text-lg font-semibold">{formatMoney(producto.averageCost)}</dd>
-            </div>
-          </dl>
-        </Card>
-      )}
 
       {valores.kind === "PLANT" && (
         <div className="space-y-4">

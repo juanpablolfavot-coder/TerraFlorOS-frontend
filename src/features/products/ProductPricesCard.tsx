@@ -17,21 +17,30 @@ import {
 } from "@/components/ui";
 import { PERMISSIONS, useAuth } from "@/features/auth";
 import { usePriceLists } from "@/features/sales/api";
+import { useRedondeoPrecios } from "@/features/settings/api";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney, toNumber } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { usePriceHistory, useSavePrices } from "./api";
+import {
+  aTexto,
+  filaConMargen,
+  filaConPrecio,
+  margenDesdePrecio,
+  numeroDe,
+  type FilaPrecio,
+} from "./pricing";
 import type { ProductDetail } from "./types";
 
 const PRICE_INPUT =
   "w-32 rounded-lg bg-white px-3 py-2 text-right text-sm tabular ring-1 ring-stone-300 " +
-  "ring-inset focus:ring-2 focus:ring-brand-600 focus:outline-none disabled:bg-stone-50";
+  "ring-inset placeholder:text-stone-300 focus:ring-2 focus:ring-brand-600 focus:outline-none " +
+  "disabled:bg-stone-50 disabled:text-stone-400";
 
-/** Margen sobre el costo promedio, en porcentaje. */
-function margen(precio: number, costo: number): number | null {
-  if (costo <= 0 || precio <= 0) return null;
-  return ((precio - costo) / precio) * 100;
-}
+const MARGIN_INPUT = PRICE_INPUT.replace("w-32", "w-24");
+
+/** El campo que se calculó solo lleva un tinte suave, para distinguirlo del fijado a mano. */
+const CALCULADO = "bg-brand-50/50";
 
 function HistorialDialog({
   open,
@@ -97,8 +106,11 @@ function HistorialDialog({
 }
 
 /**
- * Precios por lista. Se muestran todas las listas activas, tengan o no
- * precio cargado; el PUT manda solo las que el usuario tocó.
+ * Costo y precio de un producto ya creado. El costo es SOLO lectura (se
+ * mueve por compras/recepciones/ajustes, nunca desde el catálogo); los
+ * precios se editan por lista con margen ↔ precio bidireccional: escribís
+ * el margen y sale el precio, o escribís el precio y sale el margen. La
+ * fórmula (margen sobre costo) vive en `pricing.ts`.
  */
 export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
   const { can } = useAuth();
@@ -107,8 +119,9 @@ export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
 
   const listas = usePriceLists();
   const guardar = useSavePrices(producto.id);
+  const redondeo = useRedondeoPrecios();
 
-  const [borradores, setBorradores] = useState<Record<number, string>>({});
+  const [borradores, setBorradores] = useState<Record<number, FilaPrecio>>({});
   const [historialDe, setHistorialDe] = useState<number | null>(null);
   const [historialAbierto, setHistorialAbierto] = useState(false);
 
@@ -117,41 +130,62 @@ export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
     setBorradores({});
   }, [producto.updatedAt]);
 
+  // El margen se calcula sobre el costo promedio (visible solo con view_cost)
+  const costo = toNumber(producto.averageCost);
+  const hayCosto = verCostos && costo > 0;
+
   const precioActual = (priceListId: number): string => {
     const fila = producto.prices.find((p) => p.priceListId === priceListId);
-    return fila === undefined ? "" : String(toNumber(fila.price));
+    // Con coma decimal, igual que como se tipea
+    return fila === undefined ? "" : aTexto(toNumber(fila.price));
   };
 
-  const valorDe = (priceListId: number): string =>
-    borradores[priceListId] ?? precioActual(priceListId);
+  /** Fila mostrada: el borrador si se tocó, si no la derivada del precio guardado. */
+  const filaDe = (priceListId: number): FilaPrecio => {
+    const borrador = borradores[priceListId];
+    if (borrador !== undefined) return borrador;
 
-  const cambiados = Object.entries(borradores).filter(([id, valor]) => {
-    const original = precioActual(Number(id));
-    return valor.trim() !== "" && valor.trim() !== original;
+    const precio = precioActual(priceListId);
+    const n = numeroDe(precio);
+    const pct = n !== null && hayCosto ? margenDesdePrecio(costo, n) : null;
+    return { precio, margen: pct === null ? "" : aTexto(pct), fijado: null };
+  };
+
+  const cambiarMargen = (priceListId: number, texto: string) =>
+    setBorradores((previos) => ({
+      ...previos,
+      [priceListId]: filaConMargen(filaDe(priceListId), texto, hayCosto ? costo : null, redondeo),
+    }));
+
+  const cambiarPrecio = (priceListId: number, texto: string) =>
+    setBorradores((previos) => ({
+      ...previos,
+      [priceListId]: filaConPrecio(texto, hayCosto ? costo : null),
+    }));
+
+  const cambiados = Object.entries(borradores).filter(([id, fila]) => {
+    const nuevo = numeroDe(fila.precio);
+    return nuevo !== null && nuevo >= 0 && nuevo !== numeroDe(precioActual(Number(id)));
   });
 
   const guardarCambios = () => {
-    const body = cambiados
-      .map(([id, valor]) => ({
-        priceListId: Number(id),
-        price: Number(valor.replace(",", ".")),
-      }))
-      .filter((item) => Number.isFinite(item.price) && item.price >= 0);
+    const body = cambiados.map(([id, fila]) => ({
+      priceListId: Number(id),
+      price: numeroDe(fila.precio) ?? 0,
+    }));
 
     if (body.length === 0) return;
     guardar.mutate(body, { onSuccess: () => setBorradores({}) });
   };
 
-  const costo = toNumber(producto.averageCost);
-
   return (
     <Card flush>
       <div className="flex flex-wrap items-start justify-between gap-4 p-6 sm:p-8">
         <CardHeader
-          title="Precios"
+          title="Costo y precio"
           description={
             puedeEditar
-              ? "Un precio por lista. Cada cambio queda en el historial."
+              ? "Escribí el margen o el precio: el otro se calcula solo. Cada cambio queda en el historial."
               : "Solo lectura: editar precios requiere el permiso prices.edit."
           }
         />
@@ -167,6 +201,24 @@ export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
         </Button>
       </div>
 
+      {/* Costos: solo lectura y solo con view_cost. Desde el catálogo no
+          se editan: se mueven por compras, recepciones y ajustes. */}
+      {verCostos && (
+        <dl className="flex flex-wrap gap-x-12 gap-y-4 border-t border-stone-100 px-6 py-5 sm:px-8">
+          <div className="space-y-1">
+            <dt className="text-sm text-stone-500">Costo promedio</dt>
+            <dd className="tabular text-lg font-semibold">{formatMoney(producto.averageCost)}</dd>
+          </div>
+          <div className="space-y-1">
+            <dt className="text-sm text-stone-500">Último costo</dt>
+            <dd className="tabular text-lg font-semibold">{formatMoney(producto.lastCost)}</dd>
+          </div>
+          <p className="max-w-56 self-center text-xs text-stone-400">
+            Se actualizan solos con compras, recepciones y ajustes; acá no se editan.
+          </p>
+        </dl>
+      )}
+
       {listas.isPending ? (
         <LoadingBlock label="Cargando listas de precios…" />
       ) : listas.error !== null ? (
@@ -179,17 +231,16 @@ export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
             <THead>
               <TR>
                 <TH>Lista</TH>
+                {verCostos && <TH align="right">Margen %</TH>}
+                {verCostos && <TH align="center" aria-hidden="true">⇄</TH>}
                 <TH align="right">Precio</TH>
-                {verCostos && <TH align="right">Margen</TH>}
                 <TH align="right">Última actualización</TH>
               </TR>
             </THead>
             <TBody>
               {(listas.data ?? []).map((lista) => {
-                const fila = producto.prices.find((p) => p.priceListId === lista.id);
-                const valor = valorDe(lista.id);
-                const numerico = Number(valor.replace(",", "."));
-                const pct = verCostos ? margen(numerico, costo) : null;
+                const guardada = producto.prices.find((p) => p.priceListId === lista.id);
+                const fila = filaDe(lista.id);
 
                 return (
                   <TR key={lista.id}>
@@ -200,38 +251,43 @@ export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
                       </span>
                     </TD>
 
+                    {verCostos && (
+                      <TD align="right">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          className={cn(MARGIN_INPUT, fila.fijado === "precio" && CALCULADO)}
+                          aria-label={`Margen en ${lista.name}`}
+                          placeholder={hayCosto ? "0" : "Sin costo"}
+                          disabled={!puedeEditar || !hayCosto}
+                          title={hayCosto ? undefined : "Sin costo no se puede calcular el margen."}
+                          value={fila.margen}
+                          onChange={(event) => cambiarMargen(lista.id, event.target.value)}
+                        />
+                      </TD>
+                    )}
+
+                    {verCostos && (
+                      <TD align="center" className="text-stone-300" aria-hidden="true">
+                        ⇄
+                      </TD>
+                    )}
+
                     <TD align="right">
                       <input
                         type="text"
                         inputMode="decimal"
-                        className={PRICE_INPUT}
+                        className={cn(PRICE_INPUT, fila.fijado === "margen" && CALCULADO)}
                         aria-label={`Precio en ${lista.name}`}
                         placeholder="Sin precio"
                         disabled={!puedeEditar}
-                        value={valor}
-                        onChange={(event) =>
-                          setBorradores((previos) => ({
-                            ...previos,
-                            [lista.id]: event.target.value,
-                          }))
-                        }
+                        value={fila.precio}
+                        onChange={(event) => cambiarPrecio(lista.id, event.target.value)}
                       />
                     </TD>
 
-                    {verCostos && (
-                      <TD align="right" numeric>
-                        {pct === null ? (
-                          <span className="text-stone-400">—</span>
-                        ) : (
-                          <span className={cn(pct < 0 ? "text-red-600" : "text-stone-600")}>
-                            {pct.toFixed(1)} %
-                          </span>
-                        )}
-                      </TD>
-                    )}
-
                     <TD align="right" className="text-stone-500">
-                      {fila === undefined ? "—" : formatDateTime(fila.updatedAt)}
+                      {guardada === undefined ? "—" : formatDateTime(guardada.updatedAt)}
                     </TD>
                   </TR>
                 );
@@ -262,9 +318,14 @@ export function ProductPricesCard({ producto }: { producto: ProductDetail }) {
             </div>
           )}
 
-          {verCostos && costo > 0 && (
+          {verCostos && (
             <p className="px-6 pb-5 text-xs text-stone-400">
-              El margen se calcula sobre el costo promedio ({formatMoney(costo)}).
+              {hayCosto
+                ? `Margen sobre el costo promedio (${formatMoney(costo)}): precio = costo × (1 + margen/100). El campo sombreado es el calculado.`
+                : "Sin costo no hay margen: el precio se carga directo."}
+              {hayCosto &&
+                redondeo > 0 &&
+                ` Los precios calculados se redondean al múltiplo de ${redondeo} (configuración pricing.rounding).`}
             </p>
           )}
         </>
