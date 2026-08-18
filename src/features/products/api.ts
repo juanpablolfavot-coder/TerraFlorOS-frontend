@@ -89,7 +89,7 @@ export function useProduct(id: number | null) {
 }
 
 /** Invalida todo lo que depende del catálogo tras una escritura. */
-function useInvalidarProductos() {
+export function useInvalidarProductos() {
   const queryClient = useQueryClient();
   return (id?: number) => {
     void queryClient.invalidateQueries({ queryKey: productKeys.all });

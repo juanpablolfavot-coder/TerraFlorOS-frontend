@@ -49,6 +49,8 @@ export const productFormSchema = z.object({
   optimalStock: numeroOpcional({ min: 0 }),
   maxStock: numeroOpcional({ min: 0 }),
   mainSupplierId: z.string(),
+  // Solo se usa en el ALTA y con products.edit_cost; ver CostoPrecioCard
+  initialCost: numeroOpcional({ min: 0 }),
   imageUrl: z
     .string()
     .trim()

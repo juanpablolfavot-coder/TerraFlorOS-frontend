@@ -9,13 +9,19 @@ import {
   PageHeader,
 } from "@/components/ui";
 import { Can, PERMISSIONS, useAuth } from "@/features/auth";
-import { getApiErrorMessage, isApiError } from "@/lib/api";
+import { api, getApiErrorMessage, isApiError } from "@/lib/api";
 import { useDocumentTitle } from "@/lib/hooks";
-import { useCreateProduct, useDeleteProduct, useProduct, useUpdateProduct } from "./api";
+import {
+  useCreateProduct,
+  useDeleteProduct,
+  useInvalidarProductos,
+  useProduct,
+  useUpdateProduct,
+} from "./api";
 import { ProductBarcodesCard } from "./ProductBarcodesCard";
 import { ProductForm } from "./ProductForm";
 import { ProductPricesCard } from "./ProductPricesCard";
-import type { CreateProductBody } from "./types";
+import type { CreateProductBody, PutPricesBody } from "./types";
 
 /** Detalle del 409 al borrar un producto con stock. */
 function detalleDeStock(error: unknown): { batches: number; totalQty: number } | null {
@@ -39,20 +45,35 @@ export function ProductDetailPage() {
   const crear = useCreateProduct();
   const editar = useUpdateProduct(productId ?? 0);
   const borrar = useDeleteProduct();
+  const invalidar = useInvalidarProductos();
 
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [errorBorrado, setErrorBorrado] = useState<string | null>(null);
 
   useDocumentTitle(esAlta ? "Nuevo producto" : (producto.data?.name ?? "Producto"));
 
-  const guardar = (body: CreateProductBody) => {
+  const guardar = (body: CreateProductBody, precios: PutPricesBody) => {
     if (esAlta) {
       crear.mutate(body, {
-        onSuccess: (creado) => navigate(`/productos/${creado.id}`, { replace: true }),
+        onSuccess: async (creado) => {
+          // Los precios cargados en el alta van al PUT de precios sobre el
+          // producto recién creado. Si ese paso falla igual se navega a la
+          // ficha: el producto ya existe y el precio se reintenta desde ahí.
+          if (precios.length > 0 && can(PERMISSIONS.PRICES_EDIT)) {
+            try {
+              await api.put(`/api/products/${creado.id}/prices`, precios);
+              invalidar(creado.id);
+            } catch {
+              // la ficha muestra la lista sin precio; se carga desde ahí
+            }
+          }
+          navigate(`/productos/${creado.id}`, { replace: true });
+        },
       });
     } else {
-      // PATCH no acepta `kind`: el tipo del producto no se cambia
-      const { kind: _kind, ...resto } = body;
+      // PATCH no acepta `kind` (el tipo no se cambia) ni `initialCost`
+      // (el costo solo existe en el alta; después va por compras/ajustes)
+      const { kind: _kind, initialCost: _costo, ...resto } = body;
       editar.mutate(resto);
     }
   };
@@ -133,6 +154,10 @@ export function ProductDetailPage() {
         </Alert>
       )}
 
+      {/* Costo y precio primero: es lo que más se consulta y se ajusta,
+          mejor a mano que al fondo de la página */}
+      {detalle !== null && <ProductPricesCard producto={detalle} />}
+
       {/* Sin products.manage el formulario no se muestra: no habría dónde guardar */}
       <Can
         permission={PERMISSIONS.PRODUCTS_MANAGE}
@@ -155,10 +180,9 @@ export function ProductDetailPage() {
         />
       </Can>
 
-      {/* Precios y códigos solo existen sobre un producto ya creado */}
+      {/* Códigos de barras solo existen sobre un producto ya creado */}
       {detalle !== null && (
         <>
-          <ProductPricesCard producto={detalle} />
           <ProductBarcodesCard producto={detalle} />
 
           {can(PERMISSIONS.PRODUCTS_MANAGE) && (

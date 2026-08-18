@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PERMISSIONS, useAuth } from "@/features/auth";
 import { api } from "@/lib/api";
 import {
   ALLOW_NEGATIVE,
+  PRICING_ROUNDING,
   COMPANY_ADDRESS,
   COMPANY_LOGO,
   COMPANY_NAME,
@@ -48,6 +50,22 @@ export function useSettings(enabled = true) {
 export function usePermiteStockNegativo(enabled = true): boolean {
   const settings = useSettings(enabled);
   return esVerdadero(settings.data?.find((s) => s.key === ALLOW_NEGATIVE)?.value);
+}
+
+/**
+ * Múltiplo de redondeo de precios (`pricing.rounding`). 0 = sin redondeo.
+ *
+ * Leer settings exige `sales.create` o `settings.manage`; si el usuario
+ * no tiene ninguno (p. ej. solo carga catálogo) el pedido ni se hace y
+ * se asume sin redondeo, que es el comportamiento neutro.
+ */
+export function useRedondeoPrecios(): number {
+  const { canAny } = useAuth();
+  const settings = useSettings(
+    canAny([PERMISSIONS.SALES_CREATE, PERMISSIONS.SETTINGS_MANAGE])
+  );
+  const bruto = Number(settings.data?.find((s) => s.key === PRICING_ROUNDING)?.value ?? "");
+  return Number.isFinite(bruto) && bruto > 0 ? bruto : 0;
 }
 
 /**

@@ -181,11 +181,21 @@ export interface CreateProductBody {
   imageUrl?: string | null;
   isActive?: boolean;
   isFavorite?: boolean;
+  /**
+   * Costo de arranque del producto: el backend lo guarda como `lastCost`
+   * y `averageCost`. Solo existe en el ALTA y exige `products.edit_cost`
+   * además de `products.manage`.
+   */
+  initialCost?: number;
   plantDetail?: Partial<PlantDetailInput>;
 }
 
-/** PATCH /api/products/:id — igual pero sin `kind` (el tipo no se cambia). */
-export type UpdateProductBody = Partial<Omit<CreateProductBody, "kind">>;
+/**
+ * PATCH /api/products/:id — sin `kind` (el tipo no se cambia) y sin
+ * `initialCost` (el backend lo rechaza con 400: después del alta los
+ * costos se mueven solo por compras/recepciones/ajustes).
+ */
+export type UpdateProductBody = Partial<Omit<CreateProductBody, "kind" | "initialCost">>;
 
 /** Lo que se manda en `plantDetail`: números, no Decimal. */
 export interface PlantDetailInput

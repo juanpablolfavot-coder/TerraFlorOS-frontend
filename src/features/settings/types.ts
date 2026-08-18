@@ -21,6 +21,7 @@ export const BOOLEAN_KEYS = ["stock.allow_negative"] as const;
 export const NUMERIC_KEYS = ["pricing.rounding", "purchases.cost_increase_alert_pct"] as const;
 
 export const ALLOW_NEGATIVE = "stock.allow_negative";
+export const PRICING_ROUNDING = "pricing.rounding";
 
 /**
  * Datos del vivero que se imprimen en presupuestos y comprobantes.
